@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import logoAsset from "@/assets/logo.png.asset.json";
-import p1 from "@/assets/gallery/p1.jpg.asset.json";
-import p2 from "@/assets/gallery/p2.jpg.asset.json";
-import p3 from "@/assets/gallery/p3.jpg.asset.json";
-import p4 from "@/assets/gallery/p4.jpg.asset.json";
-import p5 from "@/assets/gallery/p5.jpg.asset.json";
+import logoAsset from "@/assets/logo.png";
+import p1 from "@/assets/gallery/p1.jpg";
+import p2 from "@/assets/gallery/p2.jpg";
+import p3 from "@/assets/gallery/p3.jpg";
+import p4 from "@/assets/gallery/p4.jpg";
+import p5 from "@/assets/gallery/p5.jpg";
 
-const PHOTOS = [p1.url, p2.url, p3.url, p4.url, p5.url];
+const PHOTOS = [p1, p2, p3, p4, p5];
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -53,7 +53,7 @@ function Header() {
     <header className="glass sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <a href="#home" className="flex items-center gap-3">
-          <img src={logoAsset.url} alt="The Photocrafters" className="h-10 w-10 object-contain" />
+          <img src={logoAsset} alt="The Photocrafters" className="h-10 w-10 object-contain" />
           <span className="font-display text-lg font-semibold tracking-wide text-[color:var(--olive)]">
             the photocrafters
           </span>
@@ -770,7 +770,7 @@ function Footer() {
         <div className="grid gap-14 lg:grid-cols-2">
           <div>
             <div className="flex items-center gap-3">
-              <img src={logoAsset.url} alt="The Photocrafters" className="h-12 w-12 object-contain" />
+              <img src={logoAsset} alt="The Photocrafters" className="h-12 w-12 object-contain" />
               <span className="font-display text-2xl font-semibold text-[color:var(--olive)]">
                 the photocrafters
               </span>
