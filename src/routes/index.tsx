@@ -338,9 +338,10 @@ function Builder() {
     return c.count > 0 ? active : 0;
   };
 
-  const { total, hasCore } = useMemo(() => {
+  const { total, hasService } = useMemo(() => {
     let t = 0;
     let coreCount = 0;
+    let preCount = 0;
     (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
       const mult = sideMult(core.state[k]);
       coreCount += mult;
@@ -348,7 +349,10 @@ function Builder() {
     });
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
-      if (c.count > 0) t += PRICES.pre4[k] * c.count;
+      if (c.count > 0) {
+        preCount += c.count;
+        t += PRICES.pre4[k] * c.count;
+      }
     });
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
@@ -362,12 +366,12 @@ function Builder() {
       t += PRICES.travel;
       t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide;
     }
-    return { total: t, hasCore: coreCount > 0 };
+    return { total: t, hasService: coreCount > 0 || preCount > 0 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [core.state, pre.state, deliv.state, addon.state, side]);
 
   const handleSendQuote = () => {
-    if (!hasCore) return;
+    if (!hasService) return;
 
     const selectedItems: string[] = [];
 
@@ -504,14 +508,14 @@ function Builder() {
                 Estimated custom investment
               </div>
               <div className="mt-1 font-display text-3xl font-semibold text-[color:var(--olive)] sm:text-4xl">
-                {hasCore ? `₹${total.toLocaleString("en-IN")}` : "Select at least one core service"}
+                {hasService ? `₹${total.toLocaleString("en-IN")}` : "Select at least one service"}
               </div>
             </div>
             <button
               onClick={handleSendQuote}
-              disabled={!hasCore}
+              disabled={!hasService}
               className={`rounded-2xl px-7 py-4 text-sm font-semibold transition-transform hover:scale-[1.02] ${
-                hasCore
+                hasService
                   ? "bg-[color:var(--olive)] text-white shadow-md cursor-pointer"
                   : "cursor-not-allowed border border-foreground/10 text-foreground/40"
               }`}
@@ -797,20 +801,25 @@ function OtherServices() {
         </div>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s) => (
-            <div
+            <a
               key={s.label}
-              className="group flex items-center gap-4 rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur-sm transition-all hover:bg-white/10"
+              href={`https://wa.me/916282075839?text=${encodeURIComponent(`Hello! I am interested in your ${s.label} services. Can we discuss the details and pricing?`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-4 rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur-sm transition-all hover:bg-white/10 text-left text-white decoration-none cursor-pointer"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-2xl text-[color:var(--olive)]">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-2xl text-[color:var(--olive)] shrink-0">
                 {s.icon}
               </div>
               <div className="font-display text-lg font-medium">{s.label}</div>
-            </div>
+            </a>
           ))}
         </div>
         <div className="mt-14 text-center">
           <a
-            href="#contact"
+            href={`https://wa.me/916282075839?text=${encodeURIComponent("Hello! I would like to discuss a custom photography project with you.")}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-[color:var(--olive)] transition-transform hover:scale-[1.02]"
           >
             Contact Us for Custom Projects →
