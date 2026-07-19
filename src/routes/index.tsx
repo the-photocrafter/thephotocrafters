@@ -416,7 +416,7 @@ function Builder() {
 
     const message = `Hello! I would like to get a quote for the following wedding package:\n${itemsText}\nEstimated Total: ${formattedTotal}`;
     const encodedMessage = encodeURIComponent(message);
-    const url = `https://wa.me/message/MMC5NYNZJ6FQN1?text=${encodedMessage}`;
+    const url = `https://wa.me/916282075839?text=${encodedMessage}`;
     window.open(url, "_blank");
   };
 
