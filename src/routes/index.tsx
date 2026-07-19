@@ -364,6 +364,62 @@ function Builder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [core.state, pre.state, deliv.state, addon.state, side]);
 
+  const handleSendQuote = () => {
+    if (!hasCore) return;
+
+    const selectedItems: string[] = [];
+
+    // Core
+    (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
+      const c = core.state[k];
+      const mult = sideMult(c);
+      if (mult > 0) {
+        let sideText = "";
+        if (side === "both") {
+          const parts: string[] = [];
+          if (c.brideOn) parts.push("Bride");
+          if (c.groomOn) parts.push("Groom");
+          if (parts.length > 0) {
+            sideText = ` (${parts.join(" + ")})`;
+          }
+        }
+        selectedItems.push(`${CORE_LABELS[k]}${sideText}: ${c.count}`);
+      }
+    });
+
+    // Pre
+    (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
+      const c = pre.state[k];
+      if (c.count > 0) {
+        selectedItems.push(`${PRE_LABELS[k]}: ${c.count}`);
+      }
+    });
+
+    // Deliverables
+    (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
+      const c = deliv.state[k];
+      if (c.count > 0) {
+        selectedItems.push(`${DELIV_LABELS[k]}: ${c.count}`);
+      }
+    });
+
+    // Addons
+    (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
+      const c = addon.state[k];
+      if (c.count > 0) {
+        selectedItems.push(`${ADDON_LABELS[k]}: ${c.count}`);
+      }
+    });
+
+    const itemsText = selectedItems.map((item) => `- ${item}`).join("\n");
+    const formattedTotal = `₹${total.toLocaleString("en-IN")}`;
+
+    const message = `Hello! I would like to get a quote for the following wedding package:\n${itemsText}\nEstimated Total: ${formattedTotal}`;
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/message/MMC5NYNZJ6FQN1?text=${encodedMessage}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <section id="builder" className="bg-[color:var(--olive-tint)]/40 py-24 sm:py-32">
       <div className="mx-auto max-w-6xl px-6">
@@ -449,16 +505,17 @@ function Builder() {
                 {hasCore ? `₹${total.toLocaleString("en-IN")}` : "Select at least one core service"}
               </div>
             </div>
-            <a
-              href="#contact"
+            <button
+              onClick={handleSendQuote}
+              disabled={!hasCore}
               className={`rounded-2xl px-7 py-4 text-sm font-semibold transition-transform hover:scale-[1.02] ${
                 hasCore
-                  ? "bg-[color:var(--olive)] text-white shadow-md"
+                  ? "bg-[color:var(--olive)] text-white shadow-md cursor-pointer"
                   : "cursor-not-allowed border border-foreground/10 text-foreground/40"
               }`}
             >
               Send my quote →
-            </a>
+            </button>
           </div>
         </div>
       </div>
