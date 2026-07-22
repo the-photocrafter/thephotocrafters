@@ -718,14 +718,30 @@ function Gallery() {
 
 /* ---------- Reviews Marquee ---------- */
 const REVIEWS = [
-  { name: "Ann Maria", text: "Absolutely magical! The candid shots captured emotions we didn't even realise we felt." },
-  { name: "Rohit K.", text: "Professional, punctual and incredibly talented. Our album is a family heirloom." },
-  { name: "Neha & Arjun", text: "The reels went viral in our circle. Best decision of the wedding." },
-  { name: "Priya S.", text: "Helicam shots were cinematic. Worth every rupee." },
-  { name: "Sneha Thomas", text: "They made shy me feel like a model. Loved the whole team!" },
-  { name: "Vishnu R.", text: "Delivered next-day edits before our reception. Speechless." },
-  { name: "Anjali M.", text: "Ten out of ten. Would book them again for every milestone." },
-  { name: "Karthik V.", text: "Beautiful storytelling. Not just photos — memories." },
+  {
+    name: "ROSE anu",
+    text: "I have been connecting with photocrafters since the beginning. I would strongly recommend “The Photocrafters” for all kinds of events may it be Wedding, Betrothal, Save the date, Mom to be, New born, Noolukettu, Baptism, Holy Communion, Wedding anniversaries, Birthdays etc. because of their cost friendliness and easily approachable nature. I am 100 percent satisfied with the work and dedication of people. Premium quality pictures in such short span of time and budget friendliness is what makes them different."
+  },
+  {
+    name: "Jobin Philip",
+    text: "We had an incredible experience with The Photocrafters Wedding & Events! The team is young, energetic, and absolutely brimming with creativity. They captured every special moment of our wedding beautifully, ensuring no detail was missed. The lead photographer’s skills and passion truly stand out – you can see it in the stunning photos and videos they deliver. Their ability to make everyone feel comfortable and bring out natural smiles is unmatched. Highly recommended for anyone looking to create timeless memories for their wedding or event."
+  },
+  {
+    name: "Melbin Paul",
+    text: "The frames are beautiful and the capturing is excellent - outstanding work! The crew members are very sincere and supportive. I'm completely satisfied with the work. Thank you. #photocrafters"
+  },
+  {
+    name: "Leon Peter Varghese",
+    text: "A young and professional approach to creative photography at our everyday functions 👌 Reliable for all events. ..."
+  },
+  {
+    name: "Melwin George",
+    text: "These people really know what they're doing. I have had so many experinces with the team and they never disappoint."
+  },
+  {
+    name: "ANGEL DOMINIC",
+    text: "Good work by Philip and team.... Thank you"
+  }
 ];
 
 function Reviews() {
@@ -758,7 +774,7 @@ function Reviews() {
               >
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--olive-tint)] font-display text-sm font-semibold text-[color:var(--olive)]">
-                    {r.name[0]}
+                    {r.name[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{r.name}</div>
