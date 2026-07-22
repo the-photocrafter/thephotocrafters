@@ -757,38 +757,36 @@ function Reviews() {
         </h2>
         <p className="mt-4 text-foreground/60">Tap any card to read all reviews.</p>
       </div>
-      <a
-        href="https://share.google/WRD6kn4RPchsxun1L"
-        target="_blank"
-        rel="noreferrer"
-        className="mt-14 block"
-      >
+      <div className="mt-14 block">
         <div className="group relative">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-background to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />
           <div className="flex w-max animate-marquee gap-5 group-hover:[animation-play-state:paused]">
             {stream.map((r, i) => (
-              <article
+              <a
                 key={i}
-                className="w-[340px] shrink-0 rounded-3xl border border-[color:var(--olive)]/12 bg-white p-6 shadow-sm"
+                href="https://www.google.com/search?sca_esv=641454aca0393425&hl=en-IN&sxsrf=APpeQnvSdgLEuL-KA75xl4NQmK7NPJAgAw:1784228635286&kgmid=/g/11wbjsq3xn&q=The+Photocrafters+weddings+%26+Events&shem=epsd1,ltae,rimspwouoe&shndl=30&source=sh/x/loc/act/m1/3&kgs=70ce021c9d4deefa&utm_source=epsd1,ltae,rimspwouoe,sh/x/loc/act/m1/3#mpd=~11439739493251826943/customers/reviews"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-[340px] shrink-0 rounded-3xl border border-[color:var(--olive)]/12 bg-white p-6 shadow-sm cursor-pointer block hover:shadow-md transition-shadow text-left no-underline"
               >
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--olive-tint)] font-display text-sm font-semibold text-[color:var(--olive)]">
                     {r.name[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{r.name}</div>
+                    <div className="truncate text-sm font-semibold text-foreground">{r.name}</div>
                     <div className="flex gap-0.5 text-[#f4b400]" aria-label="5 stars">
                       {"★★★★★".split("").map((s, k) => <span key={k}>{s}</span>)}
                     </div>
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-foreground/70">"{r.text}"</p>
-              </article>
+              </a>
             ))}
           </div>
         </div>
-      </a>
+      </div>
     </section>
   );
 }
