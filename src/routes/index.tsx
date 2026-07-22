@@ -1,13 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/logo.png";
-import p1 from "@/assets/gallery/p1.jpg";
-import p2 from "@/assets/gallery/p2.jpg";
-import p3 from "@/assets/gallery/p3.jpg";
-import p4 from "@/assets/gallery/p4.jpg";
-import p5 from "@/assets/gallery/p5.jpg";
+import g1 from "@/assets/gallery/1.jpg";
+import g2 from "@/assets/gallery/2 (1).jpg";
+import g3 from "@/assets/gallery/2 (3).jpg";
+import g4 from "@/assets/gallery/2 (4).jpg";
+import g5 from "@/assets/gallery/2 (5).jpg";
+import g6 from "@/assets/gallery/2 (6).jpg";
+import g7 from "@/assets/gallery/2 (7).jpg";
+import g8 from "@/assets/gallery/2 (8).jpg";
+import g9 from "@/assets/gallery/3 (2).jpg";
+import g10 from "@/assets/gallery/3 (3).jpg";
+import g11 from "@/assets/gallery/3 (4).jpg";
+import g12 from "@/assets/gallery/3.JPG";
+import g13 from "@/assets/gallery/4 (1).jpg";
+import g14 from "@/assets/gallery/4 (2).jpg";
+import g15 from "@/assets/gallery/4 (3).jpg";
+import g16 from "@/assets/gallery/4 (4).jpg";
+import g17 from "@/assets/gallery/4 (5).jpg";
+import g18 from "@/assets/gallery/DSC05972.jpg";
+import g19 from "@/assets/gallery/DSC07623.jpg";
+import g20 from "@/assets/gallery/DSC_0483.jpg";
+import g21 from "@/assets/gallery/DSC_0938.jpg";
+import g22 from "@/assets/gallery/DSC_1023.jpg";
+import g23 from "@/assets/gallery/DSC_1215.jpg";
+import g24 from "@/assets/gallery/DSC_1847.JPG.jpg";
+import g25 from "@/assets/gallery/DSC_4168.jpg";
+import g26 from "@/assets/gallery/DSC_4739.jpg";
+import g27 from "@/assets/gallery/PJS04268.jpg";
+import g28 from "@/assets/gallery/PJS09896.jpg";
+import g29 from "@/assets/gallery/post (7).jpg";
+import g30 from "@/assets/gallery/SPM04509.jpg";
 
-const PHOTOS = [p1, p2, p3, p4, p5];
+const PHOTOS = [g1, g2, g3, g4, g5];
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -657,12 +682,19 @@ function Item({
   );
 }
 
-/* ---------- Gallery + Lightbox ---------- */
 const GALLERY_IMAGES = [
-  PHOTOS[0], PHOTOS[1], PHOTOS[2], PHOTOS[3], PHOTOS[4],
-  PHOTOS[1], PHOTOS[3], PHOTOS[0], PHOTOS[2],
+  g1, g2, g3, g4, g5, g6, g7, g8, g9, g10,
+  g11, g12, g13, g14, g15, g16, g17, g18, g19, g20,
+  g21, g22, g23, g24, g25, g26, g27, g28, g29, g30
 ];
-const HEIGHTS = ["h-72", "h-96", "h-80", "h-96", "h-64", "h-80", "h-72", "h-96", "h-80"];
+const HEIGHTS = [
+  "h-72", "h-96", "h-80", "h-64", "h-auto",
+  "h-96", "h-72", "h-80", "h-auto", "h-64",
+  "h-96", "h-80", "h-72", "h-auto", "h-64",
+  "h-96", "h-80", "h-72", "h-64", "h-auto",
+  "h-96", "h-80", "h-72", "h-auto", "h-64",
+  "h-96", "h-80", "h-72", "h-64", "h-auto"
+];
 
 function Gallery() {
   const [open, setOpen] = useState<number | null>(null);
