@@ -359,6 +359,7 @@ function Builder() {
   const pre = useCounters(PRE_KEYS);
   const deliv = useCounters(DELIV_KEYS);
   const addon = useCounters(ADDON_KEYS);
+  const [isQuoteCalculated, setIsQuoteCalculated] = useState(false);
 
   const sideMult = (c: Counter) => {
     if (side === "single") return c.count > 0 ? 1 : 0;
@@ -366,6 +367,10 @@ function Builder() {
     const active = (c.brideOn ? 1 : 0) + (c.groomOn ? 1 : 0);
     return c.count > 0 ? active : 0;
   };
+
+  useEffect(() => {
+    setIsQuoteCalculated(false);
+  }, [core.state, pre.state, deliv.state, addon.state, side]);
 
   const { total, hasService } = useMemo(() => {
     let t = 0;
@@ -391,7 +396,7 @@ function Builder() {
       const c = addon.state[k];
       if (c.count > 0) t += PRICES.addon[k] * c.count;
     });
-    if (coreCount > 0) {
+    if (coreCount > 0 || preCount > 0) {
       t += PRICES.travel;
       t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide;
     }
@@ -418,7 +423,7 @@ function Builder() {
             sideText = ` (${parts.join(" + ")})`;
           }
         }
-        selectedItems.push(`${CORE_LABELS[k]}${sideText}: ${c.count}`);
+        selectedItems.push(`${c.count}x ${CORE_LABELS[k]}${sideText}`);
       }
     });
 
@@ -426,7 +431,7 @@ function Builder() {
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${PRE_LABELS[k]}: ${c.count}`);
+        selectedItems.push(`${c.count}x ${PRE_LABELS[k]}`);
       }
     });
 
@@ -434,7 +439,7 @@ function Builder() {
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${DELIV_LABELS[k]}: ${c.count}`);
+        selectedItems.push(`${c.count}x ${DELIV_LABELS[k]}`);
       }
     });
 
@@ -442,14 +447,22 @@ function Builder() {
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${ADDON_LABELS[k]}: ${c.count}`);
+        selectedItems.push(`${c.count}x ${ADDON_LABELS[k]}`);
       }
     });
 
-    const itemsText = selectedItems.map((item) => `- ${item}`).join("\n");
-    const formattedTotal = `₹${total.toLocaleString("en-IN")}`;
+    const servicesList = selectedItems.map((item) => `- ${item}`).join("\n");
+    const formattedTotal = `₹ ${total.toLocaleString("en-IN")}`;
+    const coverageText = side === "both" ? "Both Sides" : "Single Side";
 
-    const message = `Hello! I would like to get a quote for the following wedding package:\n${itemsText}\nEstimated Total: ${formattedTotal}`;
+    const message = `Hello The Photocrafters, I would like a quote for my wedding:
+Coverage: ${coverageText}
+
+Services:
+${servicesList}
+
+Estimated Total: ${formattedTotal}`;
+
     const encodedMessage = encodeURIComponent(message);
     const url = `https://wa.me/916282075839?text=${encodedMessage}`;
     window.open(url, "_blank");
@@ -537,11 +550,21 @@ function Builder() {
                 Estimated custom investment
               </div>
               <div className="mt-1 font-display text-3xl font-semibold text-[color:var(--olive)] sm:text-4xl">
-                {hasService ? `₹${total.toLocaleString("en-IN")}` : "Select at least one service"}
+                {hasService
+                  ? isQuoteCalculated
+                    ? `₹${total.toLocaleString("en-IN")}`
+                    : "₹ --,---"
+                  : "Select at least one service"}
               </div>
             </div>
             <button
-              onClick={handleSendQuote}
+              onClick={() => {
+                if (!isQuoteCalculated) {
+                  setIsQuoteCalculated(true);
+                } else {
+                  handleSendQuote();
+                }
+              }}
               disabled={!hasService}
               className={`rounded-2xl px-7 py-4 text-sm font-semibold transition-transform hover:scale-[1.02] ${
                 hasService
@@ -549,7 +572,7 @@ function Builder() {
                   : "cursor-not-allowed border border-foreground/10 text-foreground/40"
               }`}
             >
-              Send my quote →
+              {isQuoteCalculated ? "Send my quote →" : "Get Quote"}
             </button>
           </div>
         </div>
