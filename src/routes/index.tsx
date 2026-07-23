@@ -752,11 +752,7 @@ function Gallery() {
 
         {!isExpanded && (
           <div
-            className="absolute inset-x-0 bottom-0 top-[500px] sm:top-[600px] bg-white/5 backdrop-blur-md z-10 rounded-b-3xl flex items-end justify-center pb-8"
-            style={{
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, white 100%)",
-              maskImage: "linear-gradient(to bottom, transparent 0%, white 100%)",
-            }}
+            className="absolute inset-x-0 bottom-0 h-72 flex flex-col items-center justify-end pb-10 bg-gradient-to-t from-background via-background/60 to-transparent backdrop-blur-md z-10 [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)]"
           >
             <button
               onClick={() => setIsExpanded(true)}
