@@ -692,22 +692,33 @@ const GALLERY_IMAGES = [
   g21, g22, g23, g24, g25, g26, g27, g28, g29, g30,
   g31, g32, g33, g34
 ];
-const HEIGHTS = [
-  "h-72", "h-80", "h-96", "h-auto", "h-80", "h-72", "h-auto", "h-96",
-  "h-72", "h-96", "h-80", "h-auto", "h-96", "h-72", "h-auto", "h-80",
-  "h-96", "h-80", "h-72", "h-auto", "h-80", "h-96", "h-72", "h-auto",
-  "h-72", "h-80", "h-96", "h-auto", "h-96", "h-72", "h-auto", "h-80",
-  "h-96", "h-80"
-];
-
 function Gallery() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_IMAGES.length : null));
+  };
+
+  const handlePrev = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev !== null ? (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length : null));
+  };
+
   useEffect(() => {
-    if (open === null) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    if (currentIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCurrentIndex(null);
+      } else if (e.key === "ArrowRight") {
+        setCurrentIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_IMAGES.length : null));
+      } else if (e.key === "ArrowLeft") {
+        setCurrentIndex((prev) => (prev !== null ? (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length : null));
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [currentIndex]);
 
   return (
     <section id="gallery" className="mx-auto max-w-7xl px-6 py-24 sm:py-32">
@@ -721,30 +732,77 @@ function Gallery() {
         {GALLERY_IMAGES.map((src, i) => (
           <button
             key={i}
-            onClick={() => setOpen(i)}
-            className={`mb-5 block w-full ${HEIGHTS[i]} break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]`}
+            onClick={() => setCurrentIndex(i)}
+            className="mb-5 block w-full h-auto break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]"
             aria-label={`Open photo ${i + 1}`}
           >
-            <img src={src} alt={`Open photo ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
+            <img src={src} alt={`Open photo ${i + 1}`} className="h-auto w-full object-cover" loading="lazy" />
           </button>
         ))}
       </div>
 
-      {open !== null && (
+      {currentIndex !== null && (
         <div
-          onClick={() => setOpen(null)}
+          onClick={() => setCurrentIndex(null)}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-6 backdrop-blur-sm"
         >
-          <div className="relative max-h-[85vh] w-full max-w-4xl">
-            <img src={GALLERY_IMAGES[open]} alt="Enlarged" className="max-h-[85vh] w-full rounded-3xl object-contain" />
-            <button
-              onClick={(e) => { e.stopPropagation(); setOpen(null); }}
-              className="absolute -top-4 -right-4 grid h-11 w-11 place-items-center rounded-full bg-white text-lg text-[color:var(--olive)] shadow-lg"
-              aria-label="Close"
+          {/* Close Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex(null);
+            }}
+            className="absolute top-4 right-4 md:top-6 md:right-6 z-[110] flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-lg border border-white/10 cursor-pointer"
+            aria-label="Close lightbox"
+          >
+            <span className="text-xl">✕</span>
+          </button>
+
+          {/* Previous Button */}
+          <button
+            onClick={handlePrev}
+            className="absolute left-4 md:left-6 z-[110] flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-lg border border-white/10 cursor-pointer"
+            aria-label="Previous photo"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
             >
-              ✕
-            </button>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          {/* Image container */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-h-[85vh] w-full max-w-4xl flex items-center justify-center"
+          >
+            <img
+              src={GALLERY_IMAGES[currentIndex]}
+              alt={`Open photo ${currentIndex + 1}`}
+              className="max-h-[85vh] w-full rounded-3xl object-contain select-none shadow-2xl"
+            />
           </div>
+
+          {/* Next Button */}
+          <button
+            onClick={handleNext}
+            className="absolute right-4 md:right-6 z-[110] flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-lg border border-white/10 cursor-pointer"
+            aria-label="Next photo"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
     </section>
