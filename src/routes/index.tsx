@@ -752,7 +752,7 @@ function Gallery() {
 
         {!isExpanded && (
           <div
-            className="absolute inset-x-0 bottom-0 h-72 flex flex-col items-center justify-end pb-10 bg-gradient-to-t from-background via-background/60 to-transparent backdrop-blur-md z-10 [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)]"
+            className="absolute w-[100vw] left-1/2 -translate-x-1/2 bottom-0 h-80 flex flex-col items-center justify-end pb-12 bg-gradient-to-t from-background via-background/60 to-transparent backdrop-blur-2xl z-10 [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)]"
           >
             <button
               onClick={() => setIsExpanded(true)}
