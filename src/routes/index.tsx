@@ -468,6 +468,35 @@ Estimated Total: ${formattedTotal}`;
     window.open(url, "_blank");
   };
 
+  const activeCore = (Object.keys(core.state) as (typeof CORE_KEYS)[number][])
+    .map((k) => {
+      const c = core.state[k];
+      const mult = sideMult(c);
+      return { label: CORE_LABELS[k], count: c.count, active: mult > 0 };
+    })
+    .filter((x) => x.active && x.count > 0);
+
+  const activePre = (Object.keys(pre.state) as (typeof PRE_KEYS)[number][])
+    .map((k) => {
+      const c = pre.state[k];
+      return { label: PRE_LABELS[k], count: c.count };
+    })
+    .filter((x) => x.count > 0);
+
+  const activeDeliv = (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][])
+    .map((k) => {
+      const c = deliv.state[k];
+      return { label: DELIV_LABELS[k], count: c.count };
+    })
+    .filter((x) => x.count > 0);
+
+  const activeAddon = (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][])
+    .map((k) => {
+      const c = addon.state[k];
+      return { label: ADDON_LABELS[k], count: c.count };
+    })
+    .filter((x) => x.count > 0);
+
   return (
     <section id="builder" className="bg-[color:var(--olive-tint)]/40 py-24 sm:py-32">
       <div className="mx-auto max-w-6xl px-6">
@@ -483,64 +512,167 @@ Estimated Total: ${formattedTotal}`;
           </p>
         </div>
 
-        {/* Step 1 */}
-        <div className="mt-14 rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
-          <StepLabel n={1} title="Which side are we covering?" />
-          <div className="mt-6 flex flex-wrap gap-3">
-            {(["single", "both"] as Side[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSide(s)}
-                className={`rounded-2xl px-6 py-3 text-sm font-semibold transition-all ${
-                  side === s
-                    ? "bg-[color:var(--olive)] text-white shadow-md"
-                    : "border border-[color:var(--olive)]/20 text-foreground/70 hover:border-[color:var(--olive)]/50"
-                }`}
-              >
-                {s === "single" ? "Single Side" : "Both Sides (Bride + Groom)"}
-              </button>
-            ))}
+        <div className="mt-14 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column: Form content */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Step 1 */}
+            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+              <StepLabel n={1} title="Which side are we covering?" />
+              <div className="mt-6 flex flex-wrap gap-3">
+                {(["single", "both"] as Side[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSide(s)}
+                    className={`rounded-2xl px-6 py-3 text-sm font-semibold transition-all ${
+                      side === s
+                        ? "bg-[color:var(--olive)] text-white shadow-md"
+                        : "border border-[color:var(--olive)]/20 text-foreground/70 hover:border-[color:var(--olive)]/50"
+                    }`}
+                  >
+                    {s === "single" ? "Single Side" : "Both Sides (Bride + Groom)"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Group
+              n={2}
+              title="Core services (8hr — wedding day / engagement)"
+              keys={CORE_KEYS as unknown as string[]}
+              labels={CORE_LABELS as Record<string, string>}
+              state={core.state as Record<string, Counter>}
+              set={core.set as (k: string, p: Partial<Counter>) => void}
+              side={side}
+              advanced
+            />
+            <Group
+              n={3}
+              title="Pre-events (4hr — Eve / Haldi / Mehendi)"
+              keys={PRE_KEYS as unknown as string[]}
+              labels={PRE_LABELS as Record<string, string>}
+              state={pre.state as Record<string, Counter>}
+              set={pre.set as (k: string, p: Partial<Counter>) => void}
+              side={side}
+            />
+            <Group
+              n={4}
+              title="Deliverables"
+              keys={DELIV_KEYS as unknown as string[]}
+              labels={DELIV_LABELS as Record<string, string>}
+              state={deliv.state as Record<string, Counter>}
+              set={deliv.set as (k: string, p: Partial<Counter>) => void}
+              side={side}
+              note="Frames, calendars & mini albums are complimentary when the main Album is included."
+            />
+            <Group
+              n={5}
+              title="Add-ons"
+              keys={ADDON_KEYS as unknown as string[]}
+              labels={ADDON_LABELS as Record<string, string>}
+              state={addon.state as Record<string, Counter>}
+              set={addon.set as (k: string, p: Partial<Counter>) => void}
+              side={side}
+            />
+          </div>
+
+          {/* Right Column: Sidebar */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-24 space-y-6">
+              <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-6 shadow-sm shadow-[color:var(--olive)]/5">
+                <h3 className="font-display text-lg font-semibold text-foreground border-b border-foreground/5 pb-3">
+                  Your Custom Package
+                </h3>
+
+                {!hasService ? (
+                  <p className="mt-4 text-sm text-foreground/50 italic">
+                    No services selected yet. Toggle options on the left to build your package.
+                  </p>
+                ) : (
+                  <div className="mt-4 space-y-5">
+                    {activeCore.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
+                          Coverage (Wedding Day / Engagement)
+                        </h4>
+                        <ul className="mt-2 space-y-1.5">
+                          {activeCore.map((item, idx) => (
+                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
+                              <span>◆</span>
+                              <span>{item.count}x {item.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {activePre.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
+                          Pre-Events
+                        </h4>
+                        <ul className="mt-2 space-y-1.5">
+                          {activePre.map((item, idx) => (
+                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
+                              <span>◆</span>
+                              <span>{item.count}x {item.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeDeliv.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
+                          Deliverables
+                        </h4>
+                        <ul className="mt-2 space-y-1.5">
+                          {activeDeliv.map((item, idx) => (
+                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
+                              <span>◆</span>
+                              <span>{item.count}x {item.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeAddon.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
+                          Add-ons
+                        </h4>
+                        <ul className="mt-2 space-y-1.5">
+                          {activeAddon.map((item, idx) => (
+                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
+                              <span>◆</span>
+                              <span>{item.count}x {item.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="border-t border-foreground/5 pt-4">
+                      {isQuoteCalculated ? (
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-sm font-semibold text-foreground/70">Total:</span>
+                          <span className="font-display text-2xl font-bold text-[color:var(--olive)] sm:text-3xl">
+                            ₹{total.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-sm italic text-foreground/45 text-center py-1">
+                          Pending Quote
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-
-        <Group
-          n={2}
-          title="Core services (8hr — wedding day / engagement)"
-          keys={CORE_KEYS as unknown as string[]}
-          labels={CORE_LABELS as Record<string, string>}
-          state={core.state as Record<string, Counter>}
-          set={core.set as (k: string, p: Partial<Counter>) => void}
-          side={side}
-          advanced
-        />
-        <Group
-          n={3}
-          title="Pre-events (4hr — Eve / Haldi / Mehendi)"
-          keys={PRE_KEYS as unknown as string[]}
-          labels={PRE_LABELS as Record<string, string>}
-          state={pre.state as Record<string, Counter>}
-          set={pre.set as (k: string, p: Partial<Counter>) => void}
-          side={side}
-        />
-        <Group
-          n={4}
-          title="Deliverables"
-          keys={DELIV_KEYS as unknown as string[]}
-          labels={DELIV_LABELS as Record<string, string>}
-          state={deliv.state as Record<string, Counter>}
-          set={deliv.set as (k: string, p: Partial<Counter>) => void}
-          side={side}
-          note="Frames, calendars & mini albums are complimentary when the main Album is included."
-        />
-        <Group
-          n={5}
-          title="Add-ons"
-          keys={ADDON_KEYS as unknown as string[]}
-          labels={ADDON_LABELS as Record<string, string>}
-          state={addon.state as Record<string, Counter>}
-          set={addon.set as (k: string, p: Partial<Counter>) => void}
-          side={side}
-        />
 
         {/* Sticky total */}
         <div className="sticky bottom-4 z-30 mt-10">
@@ -549,12 +681,22 @@ Estimated Total: ${formattedTotal}`;
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/50">
                 Estimated custom investment
               </div>
-              <div className="mt-1 font-display text-3xl font-semibold text-[color:var(--olive)] sm:text-4xl">
-                {hasService
-                  ? isQuoteCalculated
-                    ? `₹${total.toLocaleString("en-IN")}`
-                    : "₹ --,---"
-                  : "Select at least one service"}
+              <div className="mt-1">
+                {hasService ? (
+                  isQuoteCalculated ? (
+                    <div className="font-display text-3xl font-semibold text-[color:var(--olive)] sm:text-4xl">
+                      ₹{total.toLocaleString("en-IN")}
+                    </div>
+                  ) : (
+                    <span className="text-sm italic text-muted-foreground">
+                      Click "Get Quote" to reveal estimated rate
+                    </span>
+                  )
+                ) : (
+                  <span className="text-sm text-foreground/50">
+                    Select at least one service
+                  </span>
+                )}
               </div>
             </div>
             <button
