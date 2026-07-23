@@ -694,6 +694,7 @@ const GALLERY_IMAGES = [
 ];
 function Gallery() {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -728,17 +729,31 @@ function Gallery() {
         </span>
         <h2 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">Moments, remembered.</h2>
       </div>
-      <div className="mt-14 columns-1 gap-5 sm:columns-2 lg:columns-3">
-        {GALLERY_IMAGES.map((src, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentIndex(i)}
-            className="mb-5 block w-full h-auto break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]"
-            aria-label={`Open photo ${i + 1}`}
-          >
-            <img src={src} alt={`Open photo ${i + 1}`} className="h-auto w-full object-cover" loading="lazy" />
-          </button>
-        ))}
+
+      <div className={isExpanded ? "h-auto" : "max-h-[800px] sm:max-h-[1000px] overflow-hidden relative"}>
+        <div className="mt-14 columns-2 md:columns-3 lg:columns-4 gap-5">
+          {GALLERY_IMAGES.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentIndex(i)}
+              className="mb-5 block w-full h-auto break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]"
+              aria-label={`Open photo ${i + 1}`}
+            >
+              <img src={src} alt={`Open photo ${i + 1}`} className="h-auto w-full object-cover" loading="lazy" />
+            </button>
+          ))}
+        </div>
+
+        {!isExpanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-72 z-10 bg-gradient-to-t from-background via-background/90 to-transparent backdrop-blur-[2px] flex items-end justify-center pb-8">
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="rounded-full bg-[color:var(--olive)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[color:var(--olive)]/20 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              View More Gallery
+            </button>
+          </div>
+        )}
       </div>
 
       {currentIndex !== null && (
