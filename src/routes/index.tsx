@@ -752,10 +752,10 @@ function Gallery() {
 
         {!isExpanded && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-80 z-10 backdrop-blur-lg bg-background flex items-end justify-center pb-8"
+            className="absolute inset-x-0 bottom-0 top-[500px] sm:top-[600px] bg-white/5 backdrop-blur-md z-10 rounded-b-3xl flex items-end justify-center pb-8"
             style={{
-              WebkitMaskImage: "linear-gradient(to bottom, transparent, black 60%)",
-              maskImage: "linear-gradient(to bottom, transparent, black 60%)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, white 100%)",
+              maskImage: "linear-gradient(to bottom, transparent 0%, white 100%)",
             }}
           >
             <button
