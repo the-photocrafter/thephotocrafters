@@ -686,7 +686,7 @@ function Item({
   );
 }
 
-const GALLERY_IMAGES = [
+const galleryImages = [
   g1, g2, g3, g4, g5, g6, g7, g8, g9, g10,
   g11, g12, g13, g14, g15, g16, g17, g18, g19, g20,
   g21, g22, g23, g24, g25, g26, g27, g28, g29, g30,
@@ -699,12 +699,12 @@ function Gallery() {
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setCurrentIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_IMAGES.length : null));
+    setCurrentIndex((prev) => (prev !== null ? (prev + 1) % galleryImages.length : null));
   };
 
   const handlePrev = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setCurrentIndex((prev) => (prev !== null ? (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length : null));
+    setCurrentIndex((prev) => (prev !== null ? (prev - 1 + galleryImages.length) % galleryImages.length : null));
   };
 
   const handleViewLess = () => {
@@ -718,9 +718,9 @@ function Gallery() {
       if (e.key === "Escape") {
         setCurrentIndex(null);
       } else if (e.key === "ArrowRight") {
-        setCurrentIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_IMAGES.length : null));
+        setCurrentIndex((prev) => (prev !== null ? (prev + 1) % galleryImages.length : null));
       } else if (e.key === "ArrowLeft") {
-        setCurrentIndex((prev) => (prev !== null ? (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length : null));
+        setCurrentIndex((prev) => (prev !== null ? (prev - 1 + galleryImages.length) % galleryImages.length : null));
       }
     };
     window.addEventListener("keydown", onKey);
@@ -738,7 +738,7 @@ function Gallery() {
 
       <div className={isExpanded ? "h-auto" : "max-h-[800px] sm:max-h-[1000px] overflow-hidden relative"}>
         <div className="mt-14 columns-2 md:columns-3 lg:columns-4 gap-5">
-          {GALLERY_IMAGES.map((src, i) => (
+          {galleryImages.map((src, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}
@@ -815,7 +815,7 @@ function Gallery() {
             className="relative max-h-[85vh] w-full max-w-4xl flex items-center justify-center"
           >
             <img
-              src={GALLERY_IMAGES[currentIndex]}
+              src={galleryImages[currentIndex]}
               alt={`Open photo ${currentIndex + 1}`}
               className="max-h-[85vh] w-full rounded-3xl object-contain select-none shadow-2xl"
             />
