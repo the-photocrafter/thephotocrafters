@@ -373,33 +373,55 @@ function Builder() {
   }, [core.state, pre.state, deliv.state, addon.state, side]);
 
   const { total, hasService } = useMemo(() => {
-    let t = 0;
+    let baseSum = 0;
     let coreCount = 0;
     let preCount = 0;
+
+    // Core (Coverage/Crew: 2x if Both Sides)
     (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
       const mult = sideMult(core.state[k]);
       coreCount += mult;
-      t += PRICES.core8[k] * mult;
+      baseSum += PRICES.core8[k] * mult;
     });
+
+    // Pre (Coverage/Crew: 2x if Both Sides)
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
       if (c.count > 0) {
         preCount += c.count;
-        t += PRICES.pre4[k] * c.count;
+        const mult = side === "both" ? 2 : 1;
+        baseSum += PRICES.pre4[k] * c.count * mult;
       }
     });
+
+    // Deliverables (Physical: 2x if Both Sides; Shared: 1x)
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
-      if (c.count > 0) t += PRICES.deliv[k] * c.count;
+      if (c.count > 0) {
+        const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
+        baseSum += PRICES.deliv[k] * c.count * mult;
+      }
     });
+
+    // Addons (Shared: 1x)
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
-      if (c.count > 0) t += PRICES.addon[k] * c.count;
+      if (c.count > 0) {
+        baseSum += PRICES.addon[k] * c.count;
+      }
     });
+
+    // Combo Discount: 10% off the base services sum if Both Sides is selected
+    if (side === "both") {
+      baseSum = Math.round(baseSum * 0.90);
+    }
+
+    let t = baseSum;
     if (coreCount > 0 || preCount > 0) {
       t += PRICES.travel;
       t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide;
     }
+
     return { total: t, hasService: coreCount > 0 || preCount > 0 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [core.state, pre.state, deliv.state, addon.state, side]);
@@ -409,7 +431,7 @@ function Builder() {
 
     const selectedItems: string[] = [];
 
-    // Core
+    // Core (Coverage/Crew: 2x if Both Sides)
     (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
       const c = core.state[k];
       const mult = sideMult(c);
@@ -423,27 +445,31 @@ function Builder() {
             sideText = ` (${parts.join(" + ")})`;
           }
         }
-        selectedItems.push(`${c.count}x ${CORE_LABELS[k]}${sideText}`);
+        const displayCount = c.count * mult;
+        selectedItems.push(`${displayCount}x ${CORE_LABELS[k]}${sideText}`);
       }
     });
 
-    // Pre
+    // Pre (Coverage/Crew: 2x if Both Sides)
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${c.count}x ${PRE_LABELS[k]}`);
+        const displayCount = c.count * (side === "both" ? 2 : 1);
+        selectedItems.push(`${displayCount}x ${PRE_LABELS[k]}`);
       }
     });
 
-    // Deliverables
+    // Deliverables (Physical: 2x if Both Sides; Shared: 1x)
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${c.count}x ${DELIV_LABELS[k]}`);
+        const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
+        const displayCount = c.count * mult;
+        selectedItems.push(`${displayCount}x ${DELIV_LABELS[k]}`);
       }
     });
 
-    // Addons
+    // Addons (Shared: 1x)
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
       if (c.count > 0) {
@@ -472,21 +498,25 @@ Estimated Total: ${formattedTotal}`;
     .map((k) => {
       const c = core.state[k];
       const mult = sideMult(c);
-      return { label: CORE_LABELS[k], count: c.count, active: mult > 0 };
+      const displayCount = c.count * mult;
+      return { label: CORE_LABELS[k], count: displayCount, active: mult > 0 };
     })
     .filter((x) => x.active && x.count > 0);
 
   const activePre = (Object.keys(pre.state) as (typeof PRE_KEYS)[number][])
     .map((k) => {
       const c = pre.state[k];
-      return { label: PRE_LABELS[k], count: c.count };
+      const displayCount = c.count * (side === "both" ? 2 : 1);
+      return { label: PRE_LABELS[k], count: displayCount };
     })
     .filter((x) => x.count > 0);
 
   const activeDeliv = (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][])
     .map((k) => {
       const c = deliv.state[k];
-      return { label: DELIV_LABELS[k], count: c.count };
+      const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
+      const displayCount = c.count * mult;
+      return { label: DELIV_LABELS[k], count: displayCount };
     })
     .filter((x) => x.count > 0);
 
