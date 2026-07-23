@@ -18,21 +18,25 @@ import g14 from "@/assets/gallery/4 (2).jpg";
 import g15 from "@/assets/gallery/4 (3).jpg";
 import g16 from "@/assets/gallery/4 (4).jpg";
 import g17 from "@/assets/gallery/4 (5).jpg";
-import g18 from "@/assets/gallery/DSC05972.jpg";
-import g19 from "@/assets/gallery/DSC07623.jpg";
-import g20 from "@/assets/gallery/DSC_0483.jpg";
-import g21 from "@/assets/gallery/DSC_0938.jpg";
-import g22 from "@/assets/gallery/DSC_1023.jpg";
-import g23 from "@/assets/gallery/DSC_1215.jpg";
-import g24 from "@/assets/gallery/DSC_1847.JPG.jpg";
-import g25 from "@/assets/gallery/DSC_4168.jpg";
-import g26 from "@/assets/gallery/DSC_4739.jpg";
+import g18 from "@/assets/gallery/DSC_0483.jpg";
+import g19 from "@/assets/gallery/DSC_0938.jpg";
+import g20 from "@/assets/gallery/DSC_1023.jpg";
+import g21 from "@/assets/gallery/DSC_1215.jpg";
+import g22 from "@/assets/gallery/DSC_1847.JPG.jpg";
+import g23 from "@/assets/gallery/DSC_4168.jpg";
+import g24 from "@/assets/gallery/DSC_4739.jpg";
+import g25 from "@/assets/gallery/DSC05972.jpg";
+import g26 from "@/assets/gallery/DSC07623.jpg";
 import g27 from "@/assets/gallery/PJS04268.jpg";
 import g28 from "@/assets/gallery/PJS09896.jpg";
 import g29 from "@/assets/gallery/post (7).jpg";
 import g30 from "@/assets/gallery/SPM04509.jpg";
+import g31 from "@/assets/gallery/DSC_5871.jpg";
+import g32 from "@/assets/gallery/DSC09066.JPG";
+import g33 from "@/assets/gallery/PJS00554.JPG";
+import g34 from "@/assets/gallery/DSC04771.JPG";
 
-const PHOTOS = [g1, g2, g3, g4, g5];
+const PHOTOS = [g1, g31, g14, g29];
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -685,15 +689,15 @@ function Item({
 const GALLERY_IMAGES = [
   g1, g2, g3, g4, g5, g6, g7, g8, g9, g10,
   g11, g12, g13, g14, g15, g16, g17, g18, g19, g20,
-  g21, g22, g23, g24, g25, g26, g27, g28, g29, g30
+  g21, g22, g23, g24, g25, g26, g27, g28, g29, g30,
+  g31, g32, g33, g34
 ];
 const HEIGHTS = [
-  "h-72", "h-96", "h-80", "h-64", "h-auto",
-  "h-96", "h-72", "h-80", "h-auto", "h-64",
-  "h-96", "h-80", "h-72", "h-auto", "h-64",
-  "h-96", "h-80", "h-72", "h-64", "h-auto",
-  "h-96", "h-80", "h-72", "h-auto", "h-64",
-  "h-96", "h-80", "h-72", "h-64", "h-auto"
+  "h-72", "h-80", "h-96", "h-auto", "h-80", "h-72", "h-auto", "h-96",
+  "h-72", "h-96", "h-80", "h-auto", "h-96", "h-72", "h-auto", "h-80",
+  "h-96", "h-80", "h-72", "h-auto", "h-80", "h-96", "h-72", "h-auto",
+  "h-72", "h-80", "h-96", "h-auto", "h-96", "h-72", "h-auto", "h-80",
+  "h-96", "h-80"
 ];
 
 function Gallery() {
@@ -721,7 +725,7 @@ function Gallery() {
             className={`mb-5 block w-full ${HEIGHTS[i]} break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]`}
             aria-label={`Open photo ${i + 1}`}
           >
-            <img src={src} alt={`Photocrafters gallery ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
+            <img src={src} alt={`Open photo ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
           </button>
         ))}
       </div>
