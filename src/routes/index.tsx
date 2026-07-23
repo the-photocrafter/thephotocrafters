@@ -696,6 +696,7 @@ function Gallery() {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const galleryRef = useRef<HTMLElement>(null);
+  const [numCols, setNumCols] = useState(2);
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -713,6 +714,21 @@ function Gallery() {
   };
 
   useEffect(() => {
+    const updateCols = () => {
+      if (window.innerWidth >= 1024) {
+        setNumCols(4);
+      } else if (window.innerWidth >= 768) {
+        setNumCols(3);
+      } else {
+        setNumCols(2);
+      }
+    };
+    updateCols();
+    window.addEventListener("resize", updateCols);
+    return () => window.removeEventListener("resize", updateCols);
+  }, []);
+
+  useEffect(() => {
     if (currentIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -727,6 +743,14 @@ function Gallery() {
     return () => window.removeEventListener("keydown", onKey);
   }, [currentIndex]);
 
+  const columns: { img: string; originalIndex: number }[][] = Array.from(
+    { length: numCols },
+    () => []
+  );
+  galleryImages.forEach((img, i) => {
+    columns[i % numCols].push({ img, originalIndex: i });
+  });
+
   return (
     <section ref={galleryRef} id="gallery" className="mx-auto max-w-7xl px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
@@ -737,16 +761,25 @@ function Gallery() {
       </div>
 
       <div className={isExpanded ? "h-auto" : "max-h-[800px] sm:max-h-[1000px] overflow-hidden relative"}>
-        <div className="mt-14 columns-2 md:columns-3 lg:columns-4 gap-5">
-          {galleryImages.map((src, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentIndex(i)}
-              className="mb-5 block w-full h-auto break-inside-avoid overflow-hidden rounded-3xl transition-transform hover:scale-[1.01]"
-              aria-label={`Open photo ${i + 1}`}
-            >
-              <img src={src} alt={`Open photo ${i + 1}`} className="h-auto w-full object-cover" loading="lazy" />
-            </button>
+        <div className="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 items-start">
+          {columns.map((col, colIdx) => (
+            <div key={colIdx} className="flex flex-col gap-5">
+              {col.map(({ img, originalIndex }) => (
+                <button
+                  key={originalIndex}
+                  onClick={() => setCurrentIndex(originalIndex)}
+                  className="block w-full h-auto overflow-hidden rounded-3xl transition-transform hover:scale-[1.01] cursor-pointer"
+                  aria-label={`Open photo ${originalIndex + 1}`}
+                >
+                  <img
+                    src={img}
+                    alt={`Open photo ${originalIndex + 1}`}
+                    className="h-auto w-full object-cover"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
           ))}
         </div>
 
