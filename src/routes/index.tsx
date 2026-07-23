@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import logoAsset from "@/assets/logo.png";
 import g1 from "@/assets/gallery/1.jpg";
 import g2 from "@/assets/gallery/2 (1).jpg";
@@ -695,6 +695,7 @@ const GALLERY_IMAGES = [
 function Gallery() {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const galleryRef = useRef<HTMLElement>(null);
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -704,6 +705,11 @@ function Gallery() {
   const handlePrev = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setCurrentIndex((prev) => (prev !== null ? (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length : null));
+  };
+
+  const handleViewLess = () => {
+    setIsExpanded(false);
+    galleryRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -722,7 +728,7 @@ function Gallery() {
   }, [currentIndex]);
 
   return (
-    <section id="gallery" className="mx-auto max-w-7xl px-6 py-24 sm:py-32">
+    <section ref={galleryRef} id="gallery" className="mx-auto max-w-7xl px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-xs font-medium uppercase tracking-[0.22em] text-[color:var(--olive)]">
           Selected work
@@ -745,12 +751,29 @@ function Gallery() {
         </div>
 
         {!isExpanded && (
-          <div className="absolute bottom-0 left-0 right-0 h-72 z-10 bg-gradient-to-t from-background via-background/90 to-transparent backdrop-blur-[2px] flex items-end justify-center pb-8">
+          <div
+            className="absolute bottom-0 left-0 right-0 h-80 z-10 backdrop-blur-lg bg-background flex items-end justify-center pb-8"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, transparent, black 60%)",
+              maskImage: "linear-gradient(to bottom, transparent, black 60%)",
+            }}
+          >
             <button
               onClick={() => setIsExpanded(true)}
               className="rounded-full bg-[color:var(--olive)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[color:var(--olive)]/20 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
             >
               View More Gallery
+            </button>
+          </div>
+        )}
+
+        {isExpanded && (
+          <div className="mt-8 flex justify-center pb-4">
+            <button
+              onClick={handleViewLess}
+              className="rounded-full bg-[color:var(--olive)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[color:var(--olive)]/20 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              View Less ↑
             </button>
           </div>
         )}
