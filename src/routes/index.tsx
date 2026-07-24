@@ -353,10 +353,25 @@ const ADDON_LABELS: Record<(typeof ADDON_KEYS)[number], string> = {
   preVideo: "Pre/Post Video Shoot",
 };
 
+const ALL_EVENTS = ["Wedding", "Engagement", "Haldi", "Wedding Eve", "Mehendi", "Post-Wedding"] as const;
+const CORE_EVENTS = ["Wedding", "Engagement"] as const;
+
 function Builder() {
   const [side, setSide] = useState<Side>("both");
-  const core = useCounters(CORE_KEYS);
-  const pre = useCounters(PRE_KEYS);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(["Wedding"]);
+
+  const [eventState, setEventState] = useState<Record<string, Record<string, Counter>>>(() => {
+    const initEvent = () => Object.fromEntries(CORE_KEYS.map((k) => [k, initial()]));
+    return {
+      Wedding: initEvent(),
+      Engagement: initEvent(),
+      "Wedding Eve": initEvent(),
+      Haldi: initEvent(),
+      Mehendi: initEvent(),
+      "Post-Wedding": initEvent(),
+    };
+  });
+
   const deliv = useCounters(DELIV_KEYS);
   const addon = useCounters(ADDON_KEYS);
   const [isQuoteCalculated, setIsQuoteCalculated] = useState(false);
@@ -366,6 +381,25 @@ function Builder() {
     // both — brideOn/groomOn govern per-side inclusion
     const active = (c.brideOn ? 1 : 0) + (c.groomOn ? 1 : 0);
     return c.count > 0 ? active : 0;
+  };
+
+  const toggleEvent = (evt: string) => {
+    setSelectedEvents((prev) =>
+      prev.includes(evt) ? prev.filter((e) => e !== evt) : [...prev, evt]
+    );
+  };
+
+  const setEventService = (evt: string, key: string, patch: Partial<Counter>) => {
+    setEventState((s) => ({
+      ...s,
+      [evt]: {
+        ...s[evt],
+        [key]: {
+          ...s[evt][key],
+          ...patch,
+        },
+      },
+    }));
   };
 
   const getDisplayQuantity = (
@@ -409,38 +443,44 @@ function Builder() {
 
   useEffect(() => {
     setIsQuoteCalculated(false);
-  }, [core.state, pre.state, deliv.state, addon.state, side]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents]);
 
   const { total, hasService } = useMemo(() => {
     let baseSum = 0;
+    let hasAnyService = false;
     let coreCount = 0;
     let preCount = 0;
 
-    // Core (Coverage/Crew: 2x if Both Sides)
-    (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
-      const c = core.state[k];
-      if (c.count > 0) {
-        const displayCount = getDisplayQuantity("core", k, c.count, c);
-        const mult = sideMult(c);
-        coreCount += mult;
-        baseSum += PRICES.core8[k] * displayCount;
-      }
-    });
+    selectedEvents.forEach((evt) => {
+      const isCore = CORE_EVENTS.includes(evt as any);
+      const services = eventState[evt] || {};
 
-    // Pre (Coverage/Crew: 2x if Both Sides)
-    (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
-      const c = pre.state[k];
-      if (c.count > 0) {
-        const displayCount = getDisplayQuantity("pre", k, c.count);
-        preCount += displayCount;
-        baseSum += PRICES.pre4[k] * displayCount;
-      }
+      (Object.keys(services) as (typeof CORE_KEYS)[number][]).forEach((k) => {
+        const c = services[k];
+        if (c && c.count > 0) {
+          if (isCore) {
+            const displayCount = getDisplayQuantity("core", k, c.count, c);
+            const mult = sideMult(c);
+            if (mult > 0) {
+              hasAnyService = true;
+              coreCount += mult;
+              baseSum += PRICES.core8[k] * displayCount;
+            }
+          } else {
+            hasAnyService = true;
+            const displayCount = getDisplayQuantity("pre", k, c.count);
+            preCount += displayCount;
+            baseSum += PRICES.pre4[k] * displayCount;
+          }
+        }
+      });
     });
 
     // Deliverables (Physical: 2x if Both Sides; Shared: 1x)
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
       if (c.count > 0) {
+        hasAnyService = true;
         const displayCount = getDisplayQuantity("deliv", k, c.count);
         baseSum += PRICES.deliv[k] * displayCount;
       }
@@ -450,15 +490,11 @@ function Builder() {
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
       if (c.count > 0) {
+        hasAnyService = true;
         const displayCount = getDisplayQuantity("addon", k, c.count);
         baseSum += PRICES.addon[k] * displayCount;
       }
     });
-
-    // Combo Discount: 10% off the base services sum if Both Sides is selected
-    if (side === "both") {
-      baseSum = Math.round(baseSum * 0.90);
-    }
 
     let t = baseSum;
     if (coreCount > 0 || preCount > 0) {
@@ -466,22 +502,24 @@ function Builder() {
       t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide;
     }
 
-    return { total: t, hasService: coreCount > 0 || preCount > 0 };
+    return { total: t, hasService: hasAnyService };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [core.state, pre.state, deliv.state, addon.state, side]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents]);
 
-  const handleSendQuote = () => {
-    if (!hasService) return;
-
-    const selectedItems: string[] = [];
-
-    // Core (Coverage/Crew: 2x if Both Sides)
-    (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
-      const c = core.state[k];
-      const mult = sideMult(c);
-      if (mult > 0) {
+  // Group active services per event for rendering & WhatsApp
+  const activeEventsData = selectedEvents.map((evt) => {
+    const isCore = CORE_EVENTS.includes(evt as any);
+    const services = eventState[evt] || {};
+    const items = (Object.keys(services) as (typeof CORE_KEYS)[number][])
+      .map((k) => {
+        const c = services[k];
+        if (!c || c.count <= 0) return null;
+        
+        const mult = isCore ? sideMult(c) : (side === "both" ? 2 : 1);
+        const displayCount = getDisplayQuantity(isCore ? "core" : "pre", k, c.count, c);
+        
         let sideText = "";
-        if (side === "both") {
+        if (isCore && side === "both") {
           const parts: string[] = [];
           if (c.brideOn) parts.push("Bride");
           if (c.groomOn) parts.push("Groom");
@@ -489,46 +527,67 @@ function Builder() {
             sideText = ` (${parts.join(" + ")})`;
           }
         }
-        const displayCount = getDisplayQuantity("core", k, c.count, c);
-        selectedItems.push(`${displayCount}x ${CORE_LABELS[k]}${sideText}`);
-      }
-    });
+        
+        const label = isCore ? CORE_LABELS[k] : PRE_LABELS[k];
+        return {
+          label: label,
+          count: displayCount,
+          sideText,
+          active: isCore ? mult > 0 : true,
+        };
+      })
+      .filter((x) => x !== null && x.active) as { label: string; count: number; sideText?: string }[];
 
-    // Pre (Coverage/Crew: 2x if Both Sides)
-    (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
-      const c = pre.state[k];
-      if (c.count > 0) {
-        const displayCount = getDisplayQuantity("pre", k, c.count);
-        selectedItems.push(`${displayCount}x ${PRE_LABELS[k]}`);
-      }
-    });
+    return { name: evt, items };
+  }).filter(evtData => evtData.items.length > 0);
 
-    // Deliverables (Physical: 2x if Both Sides; Shared: 1x)
-    (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
+  const activeDelivItems = (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][])
+    .map((k) => {
       const c = deliv.state[k];
-      if (c.count > 0) {
-        const displayCount = getDisplayQuantity("deliv", k, c.count);
-        selectedItems.push(`${displayCount}x ${DELIV_LABELS[k]}`);
-      }
-    });
+      if (c.count <= 0) return null;
+      const displayCount = getDisplayQuantity("deliv", k, c.count);
+      return { label: DELIV_LABELS[k], count: displayCount };
+    })
+    .filter((x) => x !== null) as { label: string; count: number }[];
 
-    // Addons (Shared: 1x)
-    (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
+  const activeAddonItems = (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][])
+    .map((k) => {
       const c = addon.state[k];
-      if (c.count > 0) {
-        const displayCount = getDisplayQuantity("addon", k, c.count);
-        selectedItems.push(`${displayCount}x ${ADDON_LABELS[k]}`);
-      }
+      if (c.count <= 0) return null;
+      const displayCount = getDisplayQuantity("addon", k, c.count);
+      return { label: ADDON_LABELS[k], count: displayCount };
+    })
+    .filter((x) => x !== null) as { label: string; count: number }[];
+
+  const allDeliverables = [...activeDelivItems, ...activeAddonItems];
+
+  const handleSendQuote = () => {
+    if (!hasService) return;
+
+    const selectedItemsText: string[] = [];
+
+    // Dynamic event groupings
+    activeEventsData.forEach((evtData) => {
+      selectedItemsText.push(`\n*${evtData.name.toUpperCase()}*`);
+      evtData.items.forEach((item) => {
+        selectedItemsText.push(`- ${item.count}x ${item.label}${item.sideText || ""}`);
+      });
     });
 
-    const servicesList = selectedItems.map((item) => `- ${item}`).join("\n");
-    const formattedTotal = `₹ ${total.toLocaleString("en-IN")}`;
+    // Static deliverables grouping
+    if (allDeliverables.length > 0) {
+      selectedItemsText.push(`\n*DELIVERABLES*`);
+      allDeliverables.forEach((item) => {
+        selectedItemsText.push(`- ${item.count}x ${item.label}`);
+      });
+    }
+
+    const servicesList = selectedItemsText.join("\n");
+    const formattedTotal = `₹${total.toLocaleString("en-IN")}`;
     const coverageText = side === "both" ? "Both Sides" : "Single Side";
 
     const message = `Hello The Photocrafters, I would like a quote for my wedding:
 Coverage: ${coverageText}
-
-Services:
 ${servicesList}
 
 Estimated Total: ${formattedTotal}`;
@@ -537,39 +596,6 @@ Estimated Total: ${formattedTotal}`;
     const url = `https://wa.me/916282075839?text=${encodedMessage}`;
     window.open(url, "_blank");
   };
-
-  const activeCore = (Object.keys(core.state) as (typeof CORE_KEYS)[number][])
-    .map((k) => {
-      const c = core.state[k];
-      const mult = sideMult(c);
-      const displayCount = getDisplayQuantity("core", k, c.count, c);
-      return { label: CORE_LABELS[k], count: displayCount, active: mult > 0 };
-    })
-    .filter((x) => x.active && x.count > 0);
-
-  const activePre = (Object.keys(pre.state) as (typeof PRE_KEYS)[number][])
-    .map((k) => {
-      const c = pre.state[k];
-      const displayCount = getDisplayQuantity("pre", k, c.count);
-      return { label: PRE_LABELS[k], count: displayCount };
-    })
-    .filter((x) => x.count > 0);
-
-  const activeDeliv = (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][])
-    .map((k) => {
-      const c = deliv.state[k];
-      const displayCount = getDisplayQuantity("deliv", k, c.count);
-      return { label: DELIV_LABELS[k], count: displayCount };
-    })
-    .filter((x) => x.count > 0);
-
-  const activeAddon = (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][])
-    .map((k) => {
-      const c = addon.state[k];
-      const displayCount = getDisplayQuantity("addon", k, c.count);
-      return { label: ADDON_LABELS[k], count: displayCount };
-    })
-    .filter((x) => x.count > 0);
 
   return (
     <section id="builder" className="bg-[color:var(--olive-tint)]/40 py-24 sm:py-32">
@@ -609,42 +635,69 @@ Estimated Total: ${formattedTotal}`;
               </div>
             </div>
 
+            {/* Step 2 */}
+            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+              <StepLabel n={2} title="Select your events" />
+              <div className="mt-6 flex flex-wrap gap-3">
+                {ALL_EVENTS.map((evt) => {
+                  const isSelected = selectedEvents.includes(evt);
+                  return (
+                    <button
+                      key={evt}
+                      onClick={() => toggleEvent(evt)}
+                      className={`rounded-2xl px-6 py-3 text-sm font-semibold transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-[color:var(--olive)] text-white shadow-md"
+                          : "border border-[color:var(--olive)]/20 text-foreground/70 hover:border-[color:var(--olive)]/50"
+                      }`}
+                    >
+                      {evt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dynamic Event blocks */}
+            {selectedEvents.map((evt, idx) => {
+              const isCore = CORE_EVENTS.includes(evt as any);
+              const stepNum = 3 + idx;
+              const title = `${evt} Services (${isCore ? "8hr coverage" : "4hr coverage"})`;
+              const keys = isCore ? CORE_KEYS : PRE_KEYS;
+              const labels = isCore ? CORE_LABELS : PRE_LABELS;
+              
+              return (
+                <Group
+                  key={evt}
+                  n={stepNum}
+                  title={title}
+                  keys={keys}
+                  labels={labels}
+                  state={eventState[evt] || {}}
+                  set={(k, p) => setEventService(evt, k, p)}
+                  side={side}
+                  advanced={isCore}
+                />
+              );
+            })}
+
             <Group
-              n={2}
-              title="Core services (8hr — wedding day / engagement)"
-              keys={CORE_KEYS as unknown as string[]}
-              labels={CORE_LABELS as Record<string, string>}
-              state={core.state as Record<string, Counter>}
-              set={core.set as (k: string, p: Partial<Counter>) => void}
-              side={side}
-              advanced
-            />
-            <Group
-              n={3}
-              title="Pre-events (4hr — Eve / Haldi / Mehendi)"
-              keys={PRE_KEYS as unknown as string[]}
-              labels={PRE_LABELS as Record<string, string>}
-              state={pre.state as Record<string, Counter>}
-              set={pre.set as (k: string, p: Partial<Counter>) => void}
-              side={side}
-            />
-            <Group
-              n={4}
+              n={3 + selectedEvents.length}
               title="Deliverables"
-              keys={DELIV_KEYS as unknown as string[]}
-              labels={DELIV_LABELS as Record<string, string>}
-              state={deliv.state as Record<string, Counter>}
-              set={deliv.set as (k: string, p: Partial<Counter>) => void}
+              keys={DELIV_KEYS}
+              labels={DELIV_LABELS}
+              state={deliv.state}
+              set={deliv.set}
               side={side}
               note="Frames, calendars & mini albums are complimentary when the main Album is included."
             />
             <Group
-              n={5}
+              n={3 + selectedEvents.length + 1}
               title="Add-ons"
-              keys={ADDON_KEYS as unknown as string[]}
-              labels={ADDON_LABELS as Record<string, string>}
-              state={addon.state as Record<string, Counter>}
-              set={addon.set as (k: string, p: Partial<Counter>) => void}
+              keys={ADDON_KEYS}
+              labels={ADDON_LABELS}
+              state={addon.state}
+              set={addon.set}
               side={side}
             />
           </div>
@@ -663,61 +716,29 @@ Estimated Total: ${formattedTotal}`;
                   </p>
                 ) : (
                   <div className="mt-4 space-y-5">
-                    {activeCore.length > 0 && (
-                      <div>
+                    {activeEventsData.map((evtData) => (
+                      <div key={evtData.name}>
                         <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
-                          Coverage (Wedding Day / Engagement)
+                          {evtData.name}
                         </h4>
                         <ul className="mt-2 space-y-1.5">
-                          {activeCore.map((item, idx) => (
+                          {evtData.items.map((item, idx) => (
                             <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
                               <span>◆</span>
-                              <span>{item.count}x {item.label}</span>
+                              <span>{item.count}x {item.label}{item.sideText || ""}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
-                    )}
+                    ))}
 
-                    {activePre.length > 0 && (
+                    {allDeliverables.length > 0 && (
                       <div>
                         <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
-                          Pre-Events
+                          DELIVERABLES
                         </h4>
                         <ul className="mt-2 space-y-1.5">
-                          {activePre.map((item, idx) => (
-                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
-                              <span>◆</span>
-                              <span>{item.count}x {item.label}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {activeDeliv.length > 0 && (
-                      <div>
-                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
-                          Deliverables
-                        </h4>
-                        <ul className="mt-2 space-y-1.5">
-                          {activeDeliv.map((item, idx) => (
-                            <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
-                              <span>◆</span>
-                              <span>{item.count}x {item.label}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {activeAddon.length > 0 && (
-                      <div>
-                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
-                          Add-ons
-                        </h4>
-                        <ul className="mt-2 space-y-1.5">
-                          {activeAddon.map((item, idx) => (
+                          {allDeliverables.map((item, idx) => (
                             <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
                               <span>◆</span>
                               <span>{item.count}x {item.label}</span>
