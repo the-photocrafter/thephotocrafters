@@ -652,7 +652,7 @@ function Builder() {
       if (hasCore8Services) {
         t += PRICES.travel; // Travel: flat 6000
         t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
-        t += 13000; // Secret flat cost for Pre/Post Photography (5000 rate + 5000 profit + 3000 travel)
+        t += 5000; // Secret base cost for Pre/Post Photography (excluding profit/travel to prevent double charging)
       } else {
         // Standalone Pre/Post Shoot margin
         t += 3000; // Standalone travel margin
