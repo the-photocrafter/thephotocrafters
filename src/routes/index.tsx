@@ -567,6 +567,26 @@ function Builder() {
     setIsQuoteCalculated(false);
   }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos]);
 
+  useEffect(() => {
+    if (hasCore8Services) {
+      setEventState((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        ["Pre-Wedding", "Post-Wedding"].forEach((evt) => {
+          if ((next[evt]?.photo?.count || 0) > 0 || (next[evt]?.candidPhoto?.count || 0) > 0) {
+            next[evt] = {
+              ...next[evt],
+              photo: { ...next[evt].photo, count: 0 },
+              candidPhoto: { ...next[evt].candidPhoto, count: 0 },
+            };
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }
+  }, [hasCore8Services]);
+
   const { total, hasService } = useMemo(() => {
     let baseSum = 0;
     let hasAnyService = false;
@@ -632,6 +652,7 @@ function Builder() {
       if (hasCore8Services) {
         t += PRICES.travel; // Travel: flat 6000
         t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
+        t += 13000; // Secret flat cost for Pre/Post Photography (5000 rate + 5000 profit + 3000 travel)
       } else {
         // Standalone Pre/Post Shoot margin
         t += 3000; // Standalone travel margin
@@ -723,6 +744,9 @@ function Builder() {
       activeComplimentaryItems.push({ label: "Mini Album", count: 2 });
     }
     activeComplimentaryItems.push({ label: "Photo Frame", count: side === "both" ? 4 : 2 });
+    if (hasCore8Services) {
+      activeComplimentaryItems.push({ label: "Pre/Post Wedding Photography (Included)", count: 1 });
+    }
     selectedEvents.forEach((evt) => {
       activeComplimentaryItems.push({ label: `Next-Day Edited Photos (${evt})`, count: 25 });
     });
@@ -843,9 +867,14 @@ Estimated Total: ${formattedTotal}`;
               const isCore = CORE_EVENTS.includes(evt as any);
               const stepNum = 3 + idx;
               const title = `${evt} Services (${isCore ? "8hr coverage" : "4hr coverage"})`;
-              const keys = (isCore ? CORE_KEYS : PRE_KEYS).filter(
-                (k) => side !== "both" || (k !== "candidPhoto" && k !== "candidVideo")
-              );
+              const keys = (isCore ? CORE_KEYS : PRE_KEYS)
+                .filter((k) => side !== "both" || (k !== "candidPhoto" && k !== "candidVideo"))
+                .filter((k) => {
+                  if (hasCore8Services && (evt === "Pre-Wedding" || evt === "Post-Wedding")) {
+                    if (k === "photo" || k === "candidPhoto") return false;
+                  }
+                  return true;
+                });
               const labels = getEventLabels(evt);
               
               return (
@@ -1045,10 +1074,18 @@ Estimated Total: ${formattedTotal}`;
                     </div>
                   </div>
                 )}
-
-
-
-                {/* Dynamic Photo Frames */}
+                {/* Pre/Post Photography */}
+                {hasCore8Services && (
+                  <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
+                    <span className="text-emerald-600 text-lg">✓</span>
+                    <div>
+                      <div className="text-sm font-semibold text-emerald-800">Pre/Post Wedding Photography (Included)</div>
+                      <div className="text-xs text-emerald-700/80 mt-0.5">
+                        Professional Pre/Post wedding photo shoot complimentary with your package
+                      </div>
+                    </div>
+                  </div>
+                )}                {/* Dynamic Photo Frames */}
                 <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
                   <span className="text-emerald-600 text-lg">✓</span>
                   <div>
