@@ -368,6 +368,45 @@ function Builder() {
     return c.count > 0 ? active : 0;
   };
 
+  const getDisplayQuantity = (
+    group: "core" | "pre" | "deliv" | "addon",
+    key: string,
+    count: number,
+    counter?: Counter
+  ): number => {
+    if (count <= 0) return 0;
+    if (side !== "both") return count;
+
+    if (group === "core") {
+      if (counter) {
+        const active = (counter.brideOn ? 1 : 0) + (counter.groomOn ? 1 : 0);
+        return count * active;
+      }
+      return count * 2;
+    }
+
+    if (group === "pre") {
+      // Pre-event Photo, Pre-event Video, Pre-event Candid Photo, Pre-event Candid Video -> 2x
+      return count * 2;
+    }
+
+    if (group === "deliv") {
+      // Physical Deliverables (album, usb) -> 2x
+      if (key === "album" || key === "usb") {
+        return count * 2;
+      }
+      // Shared Deliverables (highlights, engFull, wedFull, reels) -> 1x
+      return count;
+    }
+
+    if (group === "addon") {
+      // Shared Deliverables (prePhoto, preVideo) -> 1x
+      return count;
+    }
+
+    return count;
+  };
+
   useEffect(() => {
     setIsQuoteCalculated(false);
   }, [core.state, pre.state, deliv.state, addon.state, side]);
@@ -379,18 +418,22 @@ function Builder() {
 
     // Core (Coverage/Crew: 2x if Both Sides)
     (Object.keys(core.state) as (typeof CORE_KEYS)[number][]).forEach((k) => {
-      const mult = sideMult(core.state[k]);
-      coreCount += mult;
-      baseSum += PRICES.core8[k] * mult;
+      const c = core.state[k];
+      if (c.count > 0) {
+        const displayCount = getDisplayQuantity("core", k, c.count, c);
+        const mult = sideMult(c);
+        coreCount += mult;
+        baseSum += PRICES.core8[k] * displayCount;
+      }
     });
 
     // Pre (Coverage/Crew: 2x if Both Sides)
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
       if (c.count > 0) {
-        preCount += c.count;
-        const mult = side === "both" ? 2 : 1;
-        baseSum += PRICES.pre4[k] * c.count * mult;
+        const displayCount = getDisplayQuantity("pre", k, c.count);
+        preCount += displayCount;
+        baseSum += PRICES.pre4[k] * displayCount;
       }
     });
 
@@ -398,8 +441,8 @@ function Builder() {
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
       if (c.count > 0) {
-        const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
-        baseSum += PRICES.deliv[k] * c.count * mult;
+        const displayCount = getDisplayQuantity("deliv", k, c.count);
+        baseSum += PRICES.deliv[k] * displayCount;
       }
     });
 
@@ -407,7 +450,8 @@ function Builder() {
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
       if (c.count > 0) {
-        baseSum += PRICES.addon[k] * c.count;
+        const displayCount = getDisplayQuantity("addon", k, c.count);
+        baseSum += PRICES.addon[k] * displayCount;
       }
     });
 
@@ -445,7 +489,7 @@ function Builder() {
             sideText = ` (${parts.join(" + ")})`;
           }
         }
-        const displayCount = c.count * mult;
+        const displayCount = getDisplayQuantity("core", k, c.count, c);
         selectedItems.push(`${displayCount}x ${CORE_LABELS[k]}${sideText}`);
       }
     });
@@ -454,7 +498,7 @@ function Builder() {
     (Object.keys(pre.state) as (typeof PRE_KEYS)[number][]).forEach((k) => {
       const c = pre.state[k];
       if (c.count > 0) {
-        const displayCount = c.count * (side === "both" ? 2 : 1);
+        const displayCount = getDisplayQuantity("pre", k, c.count);
         selectedItems.push(`${displayCount}x ${PRE_LABELS[k]}`);
       }
     });
@@ -463,8 +507,7 @@ function Builder() {
     (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][]).forEach((k) => {
       const c = deliv.state[k];
       if (c.count > 0) {
-        const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
-        const displayCount = c.count * mult;
+        const displayCount = getDisplayQuantity("deliv", k, c.count);
         selectedItems.push(`${displayCount}x ${DELIV_LABELS[k]}`);
       }
     });
@@ -473,7 +516,8 @@ function Builder() {
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
       if (c.count > 0) {
-        selectedItems.push(`${c.count}x ${ADDON_LABELS[k]}`);
+        const displayCount = getDisplayQuantity("addon", k, c.count);
+        selectedItems.push(`${displayCount}x ${ADDON_LABELS[k]}`);
       }
     });
 
@@ -498,7 +542,7 @@ Estimated Total: ${formattedTotal}`;
     .map((k) => {
       const c = core.state[k];
       const mult = sideMult(c);
-      const displayCount = c.count * mult;
+      const displayCount = getDisplayQuantity("core", k, c.count, c);
       return { label: CORE_LABELS[k], count: displayCount, active: mult > 0 };
     })
     .filter((x) => x.active && x.count > 0);
@@ -506,7 +550,7 @@ Estimated Total: ${formattedTotal}`;
   const activePre = (Object.keys(pre.state) as (typeof PRE_KEYS)[number][])
     .map((k) => {
       const c = pre.state[k];
-      const displayCount = c.count * (side === "both" ? 2 : 1);
+      const displayCount = getDisplayQuantity("pre", k, c.count);
       return { label: PRE_LABELS[k], count: displayCount };
     })
     .filter((x) => x.count > 0);
@@ -514,8 +558,7 @@ Estimated Total: ${formattedTotal}`;
   const activeDeliv = (Object.keys(deliv.state) as (typeof DELIV_KEYS)[number][])
     .map((k) => {
       const c = deliv.state[k];
-      const mult = side === "both" && (k === "album" || k === "usb") ? 2 : 1;
-      const displayCount = c.count * mult;
+      const displayCount = getDisplayQuantity("deliv", k, c.count);
       return { label: DELIV_LABELS[k], count: displayCount };
     })
     .filter((x) => x.count > 0);
@@ -523,7 +566,8 @@ Estimated Total: ${formattedTotal}`;
   const activeAddon = (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][])
     .map((k) => {
       const c = addon.state[k];
-      return { label: ADDON_LABELS[k], count: c.count };
+      const displayCount = getDisplayQuantity("addon", k, c.count);
+      return { label: ADDON_LABELS[k], count: displayCount };
     })
     .filter((x) => x.count > 0);
 
