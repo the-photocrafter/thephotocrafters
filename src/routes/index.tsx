@@ -359,14 +359,9 @@ function Builder() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(["Wedding"]);
 
   const [eventState, setEventState] = useState<Record<string, Record<string, Counter>>>(() => {
-    const initEvent = (isWedding = false) => Object.fromEntries(CORE_KEYS.map((k) => [
-      k,
-      isWedding && (k === "photo" || k === "video")
-        ? { count: 1, brideOn: true, groomOn: true }
-        : initial()
-    ]));
+    const initEvent = () => Object.fromEntries(CORE_KEYS.map((k) => [k, initial()]));
     return {
-      Wedding: initEvent(true),
+      Wedding: initEvent(),
       Engagement: initEvent(),
       "Wedding Eve": initEvent(),
       Haldi: initEvent(),
@@ -387,6 +382,8 @@ function Builder() {
   const deliv = useCounters(DELIV_KEYS);
   const addon = useCounters(ADDON_KEYS);
   const [isQuoteCalculated, setIsQuoteCalculated] = useState(false);
+  const [isDelivOpen, setIsDelivOpen] = useState(false);
+  const [isAddonOpen, setIsAddonOpen] = useState(false);
 
   const sideMult = (c: Counter) => {
     if (side === "single") return c.count > 0 ? 1 : 0;
@@ -794,65 +791,98 @@ Estimated Total: ${formattedTotal}`;
 
             {/* Step: Deliverables */}
             <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
-              <StepLabel n={3 + selectedEvents.length} title="Deliverables" />
-              <p className="mt-3 text-xs text-foreground/50">
-                Frames, calendars & mini albums are complimentary when the main Album is included.
-              </p>
+              <button
+                onClick={() => setIsDelivOpen(!isDelivOpen)}
+                className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
+              >
+                <StepLabel n={3 + selectedEvents.length} title="Deliverables" />
+                <span className="text-xl text-[color:var(--olive)] font-semibold transition-transform duration-200">
+                  {isDelivOpen ? "⌃" : "⌄"}
+                </span>
+              </button>
               
-              {/* Standard Deliverables Grid */}
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {DELIV_KEYS.map((k) => (
-                  <Item
-                    key={k}
-                    label={DELIV_LABELS[k]}
-                    c={deliv.state[k]}
-                    onCount={(count) => deliv.set(k, { count: Math.max(0, count) })}
-                    onSide={(patch) => deliv.set(k, patch)}
-                    side={side}
-                  />
-                ))}
-              </div>
-
-              {/* Dynamic Event Videos Section */}
-              {selectedEvents.length > 0 && (
-                <div className="mt-8 border-t border-foreground/5 pt-6">
-                  <h4 className="font-display text-sm font-semibold text-foreground">
-                    Event Full Length Videos (₹2,500 each)
-                  </h4>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {selectedEvents.map((evt) => {
-                      const count = eventVideos[evt] || 0;
-                      const counterObj = { count, brideOn: true, groomOn: true };
-                      return (
-                        <Item
-                          key={evt}
-                          label={`${evt} Full Video`}
-                          c={counterObj}
-                          onCount={(newCount) => {
-                            setEventVideos((prev) => ({
-                              ...prev,
-                              [evt]: Math.max(0, newCount),
-                            }));
-                          }}
-                          onSide={() => {}}
-                          side={side}
-                        />
-                      );
-                    })}
+              {isDelivOpen && (
+                <div className="mt-6 border-t border-foreground/5 pt-6">
+                  <p className="text-xs text-foreground/50">
+                    Frames, calendars & mini albums are complimentary when the main Album is included.
+                  </p>
+                  
+                  {/* Standard Deliverables Grid */}
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {DELIV_KEYS.map((k) => (
+                      <Item
+                        key={k}
+                        label={DELIV_LABELS[k]}
+                        c={deliv.state[k]}
+                        onCount={(count) => deliv.set(k, { count: Math.max(0, count) })}
+                        onSide={(patch) => deliv.set(k, patch)}
+                        side={side}
+                      />
+                    ))}
                   </div>
+
+                  {/* Dynamic Event Videos Section */}
+                  {selectedEvents.length > 0 && (
+                    <div className="mt-8 border-t border-foreground/5 pt-6">
+                      <h4 className="font-display text-sm font-semibold text-foreground">
+                        Event Full Length Videos
+                      </h4>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {selectedEvents.map((evt) => {
+                          const count = eventVideos[evt] || 0;
+                          const counterObj = { count, brideOn: true, groomOn: true };
+                          return (
+                            <Item
+                              key={evt}
+                              label={`${evt} Full Video`}
+                              c={counterObj}
+                              onCount={(newCount) => {
+                                setEventVideos((prev) => ({
+                                  ...prev,
+                                  [evt]: Math.max(0, newCount),
+                                }));
+                              }}
+                              onSide={() => {}}
+                              side={side}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            <Group
-              n={3 + selectedEvents.length + 1}
-              title="Add-ons"
-              keys={ADDON_KEYS as unknown as string[]}
-              labels={ADDON_LABELS as Record<string, string>}
-              state={addon.state as Record<string, Counter>}
-              set={addon.set as (k: string, p: Partial<Counter>) => void}
-              side={side}
-            />
+            {/* Step: Add-ons */}
+            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+              <button
+                onClick={() => setIsAddonOpen(!isAddonOpen)}
+                className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
+              >
+                <StepLabel n={3 + selectedEvents.length + 1} title="Add-ons" />
+                <span className="text-xl text-[color:var(--olive)] font-semibold transition-transform duration-200">
+                  {isAddonOpen ? "⌃" : "⌄"}
+                </span>
+              </button>
+
+              {isAddonOpen && (
+                <div className="mt-6 border-t border-foreground/5 pt-6">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {ADDON_KEYS.map((k) => (
+                      <Item
+                        key={k}
+                        label={ADDON_LABELS[k]}
+                        c={addon.state[k]}
+                        onCount={(count) => addon.set(k, { count: Math.max(0, count) })}
+                        onSide={(patch) => addon.set(k, patch)}
+                        side={side}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Complimentary Add-ons (Included) */}
             <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
@@ -955,7 +985,7 @@ Estimated Total: ${formattedTotal}`;
                         <ul className="mt-2 space-y-1.5">
                           {activeComplimentaryItems.map((item, idx) => (
                             <li key={idx} className="flex gap-2 text-sm text-emerald-700 leading-relaxed">
-                              <span>🎁</span>
+                              <span>◆</span>
                               <span>
                                 {item.label === "Digital Photo Gallery" || item.label.startsWith("Next-Day")
                                   ? `${item.label}`
@@ -1049,7 +1079,7 @@ function StepLabel({ n, title }: { n: number; title: string }) {
 }
 
 function Group({
-  n, title, keys, labels, state, set, side, advanced, note, evtName,
+  n, title, keys, labels, state, set, side, advanced, note,
 }: {
   n: number;
   title: string;
@@ -1060,35 +1090,30 @@ function Group({
   side: Side;
   advanced?: boolean;
   note?: string;
-  evtName?: string;
 }) {
   return (
     <div className="mt-6 rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
       <StepLabel n={n} title={title} />
       {note && <p className="mt-3 text-xs text-foreground/50">{note}</p>}
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {keys.map((k) => {
-          const disableDec = evtName === "Wedding" && (k === "photo" || k === "video") && state[k].count <= 1;
-          return (
-            <Item
-              key={k}
-              label={labels[k]}
-              c={state[k]}
-              onCount={(count) => set(k, { count: Math.max(0, count) })}
-              onSide={(patch) => set(k, patch)}
-              side={side}
-              advanced={advanced}
-              disableDecrement={disableDec}
-            />
-          );
-        })}
+        {keys.map((k) => (
+          <Item
+            key={k}
+            label={labels[k]}
+            c={state[k]}
+            onCount={(count) => set(k, { count: Math.max(0, count) })}
+            onSide={(patch) => set(k, patch)}
+            side={side}
+            advanced={advanced}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
 function Item({
-  label, c, onCount, onSide, side, advanced, disableDecrement,
+  label, c, onCount, onSide, side, advanced,
 }: {
   label: string;
   c: Counter;
@@ -1096,7 +1121,6 @@ function Item({
   onSide: (p: Partial<Counter>) => void;
   side: Side;
   advanced?: boolean;
-  disableDecrement?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const active = c.count > 0;
@@ -1120,15 +1144,8 @@ function Item({
         <div className="flex shrink-0 items-center gap-1 rounded-full border border-[color:var(--olive)]/20 bg-white p-1">
           <button
             aria-label="decrement"
-            onClick={() => {
-              if (!disableDecrement) {
-                onCount(c.count - 1);
-              }
-            }}
-            disabled={disableDecrement}
-            className={`grid h-7 w-7 place-items-center rounded-full text-[color:var(--olive)] transition-colors hover:bg-[color:var(--olive-tint)] ${
-              disableDecrement ? "opacity-30 cursor-not-allowed" : ""
-            }`}
+            onClick={() => onCount(c.count - 1)}
+            className="grid h-7 w-7 place-items-center rounded-full text-[color:var(--olive)] transition-colors hover:bg-[color:var(--olive-tint)]"
           >
             −
           </button>
