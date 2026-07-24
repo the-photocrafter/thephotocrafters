@@ -326,7 +326,7 @@ function Block({ label, items, inverted }: { label: string; items: string[]; inv
 const CORE_KEYS = ["photo", "video", "candidPhoto", "candidVideo"] as const;
 const PRE_KEYS = ["photo", "video", "candidPhoto", "candidVideo"] as const;
 const DELIV_KEYS = ["album", "highlights", "reels", "usb"] as const;
-const ADDON_KEYS = ["prePhoto", "preVideo"] as const;
+const ADDON_KEYS = ["preVideo"] as const;
 
 const CORE_LABELS: Record<(typeof CORE_KEYS)[number], string> = {
   photo: "Photography (8hr)",
@@ -347,7 +347,6 @@ const DELIV_LABELS: Record<(typeof DELIV_KEYS)[number], string> = {
   usb: "USB Drive",
 };
 const ADDON_LABELS: Record<(typeof ADDON_KEYS)[number], string> = {
-  prePhoto: "Pre/Post Photo Shoot",
   preVideo: "Pre/Post Video Shoot",
 };
 
@@ -494,6 +493,18 @@ function Builder() {
     return c.count * rate * 2;
   };
 
+  const hasSelectedServices = useMemo(() => {
+    let coreCrewCount = 0;
+    selectedEvents.forEach((evt) => {
+      const services = eventState[evt] || {};
+      (Object.keys(services) as (typeof CORE_KEYS)[number][]).forEach((k) => {
+        coreCrewCount += services[k]?.count || 0;
+      });
+    });
+    const paidAddonCount = addon.state.preVideo?.count || 0;
+    return coreCrewCount > 0 || paidAddonCount > 0;
+  }, [eventState, selectedEvents, addon.state]);
+
   useEffect(() => {
     setIsQuoteCalculated(false);
   }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos]);
@@ -563,6 +574,7 @@ function Builder() {
       t += PRICES.travel; // Travel: flat 6000
       t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
       t += side === "both" ? 1200 : 600; // Frames hidden cost: 1200 / 600
+      t += 13000; // Secret flat cost for Pre/Post Photography (5000 rate + 5000 profit + 3000 travel)
     }
 
     return { total: t, hasService: hasAnyService };
@@ -648,6 +660,7 @@ function Builder() {
       activeComplimentaryItems.push({ label: "Mini Album", count: 2 });
     }
     activeComplimentaryItems.push({ label: "Photo Frame", count: side === "both" ? 4 : 2 });
+    activeComplimentaryItems.push({ label: "Pre/Post Wedding Photography (Included)", count: 1 });
     selectedEvents.forEach((evt) => {
       activeComplimentaryItems.push({ label: `Next-Day Edited Photos (${evt})`, count: 25 });
     });
@@ -679,7 +692,7 @@ function Builder() {
     if (activeComplimentaryItems.length > 0) {
       selectedItemsText.push(`\n*COMPLIMENTARY*`);
       activeComplimentaryItems.forEach((item) => {
-        if (item.label === "Digital Photo Gallery" || item.label.startsWith("Next-Day")) {
+        if (item.label === "Digital Photo Gallery" || item.label.startsWith("Next-Day") || item.label.endsWith("(Included)")) {
           selectedItemsText.push(`- ${item.label}`);
         } else {
           selectedItemsText.push(`- ${item.count}x ${item.label}`);
@@ -792,16 +805,41 @@ Estimated Total: ${formattedTotal}`;
             {/* Step: Deliverables */}
             <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
               <button
-                onClick={() => setIsDelivOpen(!isDelivOpen)}
-                className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
+                onClick={() => hasSelectedServices && setIsDelivOpen(!isDelivOpen)}
+                disabled={!hasSelectedServices}
+                className={`w-full flex items-center justify-between text-left focus:outline-none px-6 py-5 rounded-2xl border border-[color:var(--olive)]/12 bg-[color:var(--olive-tint)]/35 hover:bg-[color:var(--olive-tint)]/50 transition-all ${
+                  !hasSelectedServices ? "cursor-not-allowed opacity-50 bg-gray-50 border-gray-200" : "cursor-pointer"
+                }`}
               >
-                <StepLabel n={3 + selectedEvents.length} title="Deliverables" />
-                <span className="text-xl text-[color:var(--olive)] font-semibold transition-transform duration-200">
-                  {isDelivOpen ? "⌃" : "⌄"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--olive)] font-display text-sm font-bold text-white">
+                    {3 + selectedEvents.length}
+                  </span>
+                  <span className="font-display text-base font-bold text-foreground">
+                    Deliverables
+                  </span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className={`h-5 w-5 text-[color:var(--olive)] transition-transform duration-300 ${
+                    isDelivOpen && hasSelectedServices ? "rotate-180" : ""
+                  }`}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
               </button>
+
+              {!hasSelectedServices && (
+                <p className="mt-2 text-xs italic text-foreground/50 px-2">
+                  Please select at least one coverage service to unlock deliverables and add-ons.
+                </p>
+              )}
               
-              {isDelivOpen && (
+              {isDelivOpen && hasSelectedServices && (
                 <div className="mt-6 border-t border-foreground/5 pt-6">
                   <p className="text-xs text-foreground/50">
                     Frames, calendars & mini albums are complimentary when the main Album is included.
@@ -857,16 +895,41 @@ Estimated Total: ${formattedTotal}`;
             {/* Step: Add-ons */}
             <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
               <button
-                onClick={() => setIsAddonOpen(!isAddonOpen)}
-                className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
+                onClick={() => hasSelectedServices && setIsAddonOpen(!isAddonOpen)}
+                disabled={!hasSelectedServices}
+                className={`w-full flex items-center justify-between text-left focus:outline-none px-6 py-5 rounded-2xl border border-[color:var(--olive)]/12 bg-[color:var(--olive-tint)]/35 hover:bg-[color:var(--olive-tint)]/50 transition-all ${
+                  !hasSelectedServices ? "cursor-not-allowed opacity-50 bg-gray-50 border-gray-200" : "cursor-pointer"
+                }`}
               >
-                <StepLabel n={3 + selectedEvents.length + 1} title="Add-ons" />
-                <span className="text-xl text-[color:var(--olive)] font-semibold transition-transform duration-200">
-                  {isAddonOpen ? "⌃" : "⌄"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--olive)] font-display text-sm font-bold text-white">
+                    {3 + selectedEvents.length + 1}
+                  </span>
+                  <span className="font-display text-base font-bold text-foreground">
+                    Add-ons
+                  </span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className={`h-5 w-5 text-[color:var(--olive)] transition-transform duration-300 ${
+                    isAddonOpen && hasSelectedServices ? "rotate-180" : ""
+                  }`}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
               </button>
 
-              {isAddonOpen && (
+              {!hasSelectedServices && (
+                <p className="mt-2 text-xs italic text-foreground/50 px-2">
+                  Please select at least one coverage service to unlock deliverables and add-ons.
+                </p>
+              )}
+
+              {isAddonOpen && hasSelectedServices && (
                 <div className="mt-6 border-t border-foreground/5 pt-6">
                   <div className="grid gap-3 sm:grid-cols-2">
                     {ADDON_KEYS.map((k) => (
@@ -905,6 +968,17 @@ Estimated Total: ${formattedTotal}`;
                     </div>
                   </div>
                 )}
+
+                {/* Pre/Post Photography */}
+                <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
+                  <span className="text-emerald-600 text-lg">✓</span>
+                  <div>
+                    <div className="text-sm font-semibold text-emerald-800">Pre/Post Wedding Photography (Included)</div>
+                    <div className="text-xs text-emerald-700/80 mt-0.5">
+                      Professional Pre/Post wedding photo shoot complimentary with your package
+                    </div>
+                  </div>
+                </div>
 
                 {/* Dynamic Photo Frames */}
                 <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
