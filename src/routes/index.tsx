@@ -289,7 +289,7 @@ function Packages() {
               href={`https://wa.me/916282075839?text=${encodeURIComponent(`Hello! I am interested in the ${p.name} package priced at ${p.price}. Can we discuss this further?`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={`mt-6 w-full rounded-2xl px-5 py-3 text-center text-sm font-semibold transition-colors ${
+              className={`mt-auto w-full rounded-2xl px-5 py-3 text-center text-sm font-semibold transition-colors ${
                 p.featured
                   ? "bg-white text-[color:var(--olive)] hover:bg-white/90"
                   : "border border-[color:var(--olive)]/25 text-[color:var(--olive)] hover:bg-[color:var(--olive-tint)]"
