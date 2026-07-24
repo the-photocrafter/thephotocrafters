@@ -49,7 +49,7 @@ const PRICES = {
   profitPerSide: 10000,
   core8: { photo: 8000, video: 8000, candidPhoto: 9000, candidVideo: 9000 },
   pre4: { photo: 5000, video: 6000, candidPhoto: 5000, candidVideo: 6000 },
-  deliv: { album: 14000, highlights: 6000, engFull: 2500, wedFull: 2500, reels: 1000, usb: 1500 },
+  deliv: { album: 14000, highlights: 6000, reels: 1000, usb: 1500 },
   addon: { prePhoto: 5000, preVideo: 6000 },
 };
 
@@ -325,7 +325,7 @@ function Block({ label, items, inverted }: { label: string; items: string[]; inv
 /* ---------- Builder ---------- */
 const CORE_KEYS = ["photo", "video", "candidPhoto", "candidVideo"] as const;
 const PRE_KEYS = ["photo", "video", "candidPhoto", "candidVideo"] as const;
-const DELIV_KEYS = ["album", "highlights", "engFull", "wedFull", "reels", "usb"] as const;
+const DELIV_KEYS = ["album", "highlights", "reels", "usb"] as const;
 const ADDON_KEYS = ["prePhoto", "preVideo"] as const;
 
 const CORE_LABELS: Record<(typeof CORE_KEYS)[number], string> = {
@@ -343,8 +343,6 @@ const PRE_LABELS: Record<(typeof PRE_KEYS)[number], string> = {
 const DELIV_LABELS: Record<(typeof DELIV_KEYS)[number], string> = {
   album: "80-page Premium Album",
   highlights: "Highlights Video",
-  engFull: "Engagement Full Video",
-  wedFull: "Wedding Full Video",
   reels: "Social Reels",
   usb: "USB Drive",
 };
@@ -361,9 +359,14 @@ function Builder() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(["Wedding"]);
 
   const [eventState, setEventState] = useState<Record<string, Record<string, Counter>>>(() => {
-    const initEvent = () => Object.fromEntries(CORE_KEYS.map((k) => [k, initial()]));
+    const initEvent = (isWedding = false) => Object.fromEntries(CORE_KEYS.map((k) => [
+      k,
+      isWedding && (k === "photo" || k === "video")
+        ? { count: 1, brideOn: true, groomOn: true }
+        : initial()
+    ]));
     return {
-      Wedding: initEvent(),
+      Wedding: initEvent(true),
       Engagement: initEvent(),
       "Wedding Eve": initEvent(),
       Haldi: initEvent(),
@@ -371,6 +374,15 @@ function Builder() {
       "Post-Wedding": initEvent(),
     };
   });
+
+  const [eventVideos, setEventVideos] = useState<Record<string, number>>(() => ({
+    Wedding: 0,
+    Engagement: 0,
+    "Wedding Eve": 0,
+    Haldi: 0,
+    Mehendi: 0,
+    "Post-Wedding": 0,
+  }));
 
   const deliv = useCounters(DELIV_KEYS);
   const addon = useCounters(ADDON_KEYS);
@@ -420,30 +432,74 @@ function Builder() {
     }
 
     if (group === "pre") {
-      // Pre-event Photo, Pre-event Video, Pre-event Candid Photo, Pre-event Candid Video -> 2x
       return count * 2;
     }
 
     if (group === "deliv") {
-      // Physical Deliverables (album, usb) -> 2x
       if (key === "album" || key === "usb") {
         return count * 2;
       }
-      // Shared Deliverables (highlights, engFull, wedFull, reels) -> 1x
       return count;
     }
 
     if (group === "addon") {
-      // Shared Deliverables (prePhoto, preVideo) -> 1x
       return count;
     }
 
     return count;
   };
 
+  const getServiceCost = (
+    group: "core" | "pre",
+    key: "photo" | "video" | "candidPhoto" | "candidVideo",
+    c: Counter
+  ): number => {
+    if (c.count <= 0) return 0;
+
+    if (side === "single") {
+      const rate = group === "core" ? PRICES.core8[key] : PRICES.pre4[key];
+      return c.count * rate;
+    }
+
+    // Both Sides is active
+    if (group === "core") {
+      if (key === "photo") {
+        const active = (c.brideOn ? 1 : 0) + (c.groomOn ? 1 : 0);
+        if (active === 2) {
+          return c.count * (PRICES.core8.photo + PRICES.core8.candidPhoto); // 8000 + 9000 = 17000
+        } else if (active === 1) {
+          return c.count * PRICES.core8.photo; // 8000
+        }
+        return 0;
+      }
+      if (key === "video") {
+        const active = (c.brideOn ? 1 : 0) + (c.groomOn ? 1 : 0);
+        if (active === 2) {
+          return c.count * (PRICES.core8.video + PRICES.core8.candidVideo); // 8000 + 9000 = 17000
+        } else if (active === 1) {
+          return c.count * PRICES.core8.video; // 8000
+        }
+        return 0;
+      }
+      const rate = PRICES.core8[key];
+      const active = (c.brideOn ? 1 : 0) + (c.groomOn ? 1 : 0);
+      return c.count * rate * active;
+    }
+
+    // Pre-events group
+    if (key === "photo") {
+      return c.count * (PRICES.pre4.photo + PRICES.pre4.candidPhoto); // 5000 + 5000 = 10000
+    }
+    if (key === "video") {
+      return c.count * (PRICES.pre4.video + PRICES.pre4.candidVideo); // 6000 + 6000 = 12000
+    }
+    const rate = PRICES.pre4[key];
+    return c.count * rate * 2;
+  };
+
   useEffect(() => {
     setIsQuoteCalculated(false);
-  }, [eventState, deliv.state, addon.state, side, selectedEvents]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos]);
 
   const { total, hasService } = useMemo(() => {
     let baseSum = 0;
@@ -459,18 +515,18 @@ function Builder() {
         const c = services[k];
         if (c && c.count > 0) {
           if (isCore) {
-            const displayCount = getDisplayQuantity("core", k, c.count, c);
+            const cost = getServiceCost("core", k, c);
             const mult = sideMult(c);
             if (mult > 0) {
               hasAnyService = true;
               coreCount += mult;
-              baseSum += PRICES.core8[k] * displayCount;
+              baseSum += cost;
             }
           } else {
             hasAnyService = true;
-            const displayCount = getDisplayQuantity("pre", k, c.count);
-            preCount += displayCount;
-            baseSum += PRICES.pre4[k] * displayCount;
+            const cost = getServiceCost("pre", k, c);
+            preCount += (side === "both" ? 2 : 1);
+            baseSum += cost;
           }
         }
       });
@@ -486,6 +542,15 @@ function Builder() {
       }
     });
 
+    // Dynamic Event Videos (Shared: 1x, rate: 2500)
+    selectedEvents.forEach((evt) => {
+      const videoCount = eventVideos[evt] || 0;
+      if (videoCount > 0) {
+        hasAnyService = true;
+        baseSum += 2500 * videoCount;
+      }
+    });
+
     // Addons (Shared: 1x)
     (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
       const c = addon.state[k];
@@ -497,46 +562,56 @@ function Builder() {
     });
 
     let t = baseSum;
-    if (coreCount > 0 || preCount > 0) {
-      t += PRICES.travel;
-      t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide;
+    if (hasAnyService) {
+      t += PRICES.travel; // Travel: flat 6000
+      t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
+      t += side === "both" ? 1200 : 600; // Frames hidden cost: 1200 / 600
     }
 
     return { total: t, hasService: hasAnyService };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventState, deliv.state, addon.state, side, selectedEvents]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos]);
 
   // Group active services per event for rendering & WhatsApp
   const activeEventsData = selectedEvents.map((evt) => {
     const isCore = CORE_EVENTS.includes(evt as any);
     const services = eventState[evt] || {};
-    const items = (Object.keys(services) as (typeof CORE_KEYS)[number][])
-      .map((k) => {
-        const c = services[k];
-        if (!c || c.count <= 0) return null;
-        
-        const mult = isCore ? sideMult(c) : (side === "both" ? 2 : 1);
-        const displayCount = getDisplayQuantity(isCore ? "core" : "pre", k, c.count, c);
-        
-        let sideText = "";
-        if (isCore && side === "both") {
-          const parts: string[] = [];
-          if (c.brideOn) parts.push("Bride");
-          if (c.groomOn) parts.push("Groom");
-          if (parts.length > 0) {
-            sideText = ` (${parts.join(" + ")})`;
+    const items: { label: string; count: number; sideText?: string }[] = [];
+
+    (Object.keys(services) as (typeof CORE_KEYS)[number][]).forEach((k) => {
+      const c = services[k];
+      if (!c || c.count <= 0) return;
+
+      if (isCore) {
+        const mult = sideMult(c);
+        if (mult > 0) {
+          let sideText = "";
+          if (side === "both") {
+            const parts: string[] = [];
+            if (c.brideOn) parts.push("Bride");
+            if (c.groomOn) parts.push("Groom");
+            if (parts.length > 0) {
+              sideText = ` (${parts.join(" + ")})`;
+            }
+          }
+          if (side === "both" && mult === 2) {
+            // Split display standard & candid
+            const labelName = k === "photo" ? "Photography (8hr)" : "Videography (8hr)";
+            const candidLabelName = k === "photo" ? "Candid Photography (8hr)" : "Candid Videography (8hr)";
+            items.push({ label: labelName, count: c.count, sideText });
+            items.push({ label: candidLabelName, count: c.count, sideText });
+          } else {
+            const labelName = k === "photo" ? "Photography (8hr)" : "Videography (8hr)";
+            items.push({ label: labelName, count: c.count, sideText });
           }
         }
-        
-        const label = isCore ? CORE_LABELS[k] : PRE_LABELS[k];
-        return {
-          label: label,
-          count: displayCount,
-          sideText,
-          active: isCore ? mult > 0 : true,
-        };
-      })
-      .filter((x) => x !== null && x.active) as { label: string; count: number; sideText?: string }[];
+      } else {
+        const mult = side === "both" ? 2 : 1;
+        const displayCount = c.count * mult;
+        const label = PRE_LABELS[k];
+        items.push({ label, count: displayCount });
+      }
+    });
 
     return { name: evt, items };
   }).filter(evtData => evtData.items.length > 0);
@@ -559,7 +634,28 @@ function Builder() {
     })
     .filter((x) => x !== null) as { label: string; count: number }[];
 
-  const allDeliverables = [...activeDelivItems, ...activeAddonItems];
+  const activeEventVideos: { label: string; count: number }[] = [];
+  selectedEvents.forEach((evt) => {
+    const count = eventVideos[evt] || 0;
+    if (count > 0) {
+      activeEventVideos.push({ label: `${evt} Full Video`, count });
+    }
+  });
+
+  const allDeliverables = [...activeDelivItems, ...activeEventVideos, ...activeAddonItems];
+
+  const activeComplimentaryItems: { label: string; count: number }[] = [];
+  if (hasService) {
+    if (deliv.state.album.count > 0) {
+      activeComplimentaryItems.push({ label: "Wall Calendar", count: 2 });
+      activeComplimentaryItems.push({ label: "Mini Album", count: 2 });
+    }
+    activeComplimentaryItems.push({ label: "Photo Frame", count: side === "both" ? 4 : 2 });
+    selectedEvents.forEach((evt) => {
+      activeComplimentaryItems.push({ label: `Next-Day Edited Photos (${evt})`, count: 25 });
+    });
+    activeComplimentaryItems.push({ label: "Digital Photo Gallery", count: 1 });
+  }
 
   const handleSendQuote = () => {
     if (!hasService) return;
@@ -579,6 +675,18 @@ function Builder() {
       selectedItemsText.push(`\n*DELIVERABLES*`);
       allDeliverables.forEach((item) => {
         selectedItemsText.push(`- ${item.count}x ${item.label}`);
+      });
+    }
+
+    // Complimentary grouping
+    if (activeComplimentaryItems.length > 0) {
+      selectedItemsText.push(`\n*COMPLIMENTARY*`);
+      activeComplimentaryItems.forEach((item) => {
+        if (item.label === "Digital Photo Gallery" || item.label.startsWith("Next-Day")) {
+          selectedItemsText.push(`- ${item.label}`);
+        } else {
+          selectedItemsText.push(`- ${item.count}x ${item.label}`);
+        }
       });
     }
 
@@ -663,7 +771,9 @@ Estimated Total: ${formattedTotal}`;
               const isCore = CORE_EVENTS.includes(evt as any);
               const stepNum = 3 + idx;
               const title = `${evt} Services (${isCore ? "8hr coverage" : "4hr coverage"})`;
-              const keys = isCore ? CORE_KEYS : PRE_KEYS;
+              const keys = (isCore ? CORE_KEYS : PRE_KEYS).filter(
+                (k) => side !== "both" || (k !== "candidPhoto" && k !== "candidVideo")
+              );
               const labels = isCore ? CORE_LABELS : PRE_LABELS;
               
               return (
@@ -671,35 +781,124 @@ Estimated Total: ${formattedTotal}`;
                   key={evt}
                   n={stepNum}
                   title={title}
-                  keys={keys}
-                  labels={labels}
+                  keys={keys as unknown as string[]}
+                  labels={labels as Record<string, string>}
                   state={eventState[evt] || {}}
                   set={(k, p) => setEventService(evt, k, p)}
                   side={side}
                   advanced={isCore}
+                  evtName={evt}
                 />
               );
             })}
 
-            <Group
-              n={3 + selectedEvents.length}
-              title="Deliverables"
-              keys={DELIV_KEYS}
-              labels={DELIV_LABELS}
-              state={deliv.state}
-              set={deliv.set}
-              side={side}
-              note="Frames, calendars & mini albums are complimentary when the main Album is included."
-            />
+            {/* Step: Deliverables */}
+            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+              <StepLabel n={3 + selectedEvents.length} title="Deliverables" />
+              <p className="mt-3 text-xs text-foreground/50">
+                Frames, calendars & mini albums are complimentary when the main Album is included.
+              </p>
+              
+              {/* Standard Deliverables Grid */}
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {DELIV_KEYS.map((k) => (
+                  <Item
+                    key={k}
+                    label={DELIV_LABELS[k]}
+                    c={deliv.state[k]}
+                    onCount={(count) => deliv.set(k, { count: Math.max(0, count) })}
+                    onSide={(patch) => deliv.set(k, patch)}
+                    side={side}
+                  />
+                ))}
+              </div>
+
+              {/* Dynamic Event Videos Section */}
+              {selectedEvents.length > 0 && (
+                <div className="mt-8 border-t border-foreground/5 pt-6">
+                  <h4 className="font-display text-sm font-semibold text-foreground">
+                    Event Full Length Videos (₹2,500 each)
+                  </h4>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {selectedEvents.map((evt) => {
+                      const count = eventVideos[evt] || 0;
+                      const counterObj = { count, brideOn: true, groomOn: true };
+                      return (
+                        <Item
+                          key={evt}
+                          label={`${evt} Full Video`}
+                          c={counterObj}
+                          onCount={(newCount) => {
+                            setEventVideos((prev) => ({
+                              ...prev,
+                              [evt]: Math.max(0, newCount),
+                            }));
+                          }}
+                          onSide={() => {}}
+                          side={side}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Group
               n={3 + selectedEvents.length + 1}
               title="Add-ons"
-              keys={ADDON_KEYS}
-              labels={ADDON_LABELS}
-              state={addon.state}
-              set={addon.set}
+              keys={ADDON_KEYS as unknown as string[]}
+              labels={ADDON_LABELS as Record<string, string>}
+              state={addon.state as Record<string, Counter>}
+              set={addon.set as (k: string, p: Partial<Counter>) => void}
               side={side}
             />
+
+            {/* Complimentary Add-ons (Included) */}
+            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+              <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-3">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--olive)] text-sm font-semibold text-white">
+                  🎁
+                </span>
+                Complimentary Add-ons (Included)
+              </h3>
+              <div className="mt-6 space-y-4">
+                {/* Album Freebies */}
+                {deliv.state.album.count > 0 && (
+                  <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
+                    <span className="text-emerald-600 text-lg">✓</span>
+                    <div>
+                      <div className="text-sm font-semibold text-emerald-800">Album Perks</div>
+                      <div className="text-xs text-emerald-700/80 mt-0.5">
+                        2x Wall Calendars & 2x Mini Albums (Complimentary with your Premium Album)
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Photo Frames */}
+                <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
+                  <span className="text-emerald-600 text-lg">✓</span>
+                  <div>
+                    <div className="text-sm font-semibold text-emerald-800">Photo Frames</div>
+                    <div className="text-xs text-emerald-700/80 mt-0.5">
+                      {side === "both" ? "4x Photo Frames" : "2x Photo Frames"} included with your package
+                    </div>
+                  </div>
+                </div>
+
+                {/* Always Included */}
+                <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
+                  <span className="text-emerald-600 text-lg">✓</span>
+                  <div>
+                    <div className="text-sm font-semibold text-emerald-800">Standard Inclusions</div>
+                    <div className="text-xs text-emerald-700/80 mt-0.5">
+                      20-30 Next-Day Edited Photos (per event) & 1x Digital Photo Gallery
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Sidebar */}
@@ -742,6 +941,26 @@ Estimated Total: ${formattedTotal}`;
                             <li key={idx} className="flex gap-2 text-sm text-foreground/75 leading-relaxed">
                               <span>◆</span>
                               <span>{item.count}x {item.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {activeComplimentaryItems.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--olive)]">
+                          COMPLIMENTARY
+                        </h4>
+                        <ul className="mt-2 space-y-1.5">
+                          {activeComplimentaryItems.map((item, idx) => (
+                            <li key={idx} className="flex gap-2 text-sm text-emerald-700 leading-relaxed">
+                              <span>🎁</span>
+                              <span>
+                                {item.label === "Digital Photo Gallery" || item.label.startsWith("Next-Day")
+                                  ? `${item.label}`
+                                  : `${item.count}x ${item.label}`}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -830,7 +1049,7 @@ function StepLabel({ n, title }: { n: number; title: string }) {
 }
 
 function Group({
-  n, title, keys, labels, state, set, side, advanced, note,
+  n, title, keys, labels, state, set, side, advanced, note, evtName,
 }: {
   n: number;
   title: string;
@@ -841,30 +1060,35 @@ function Group({
   side: Side;
   advanced?: boolean;
   note?: string;
+  evtName?: string;
 }) {
   return (
     <div className="mt-6 rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
       <StepLabel n={n} title={title} />
       {note && <p className="mt-3 text-xs text-foreground/50">{note}</p>}
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {keys.map((k) => (
-          <Item
-            key={k}
-            label={labels[k]}
-            c={state[k]}
-            onCount={(count) => set(k, { count: Math.max(0, count) })}
-            onSide={(patch) => set(k, patch)}
-            side={side}
-            advanced={advanced}
-          />
-        ))}
+        {keys.map((k) => {
+          const disableDec = evtName === "Wedding" && (k === "photo" || k === "video") && state[k].count <= 1;
+          return (
+            <Item
+              key={k}
+              label={labels[k]}
+              c={state[k]}
+              onCount={(count) => set(k, { count: Math.max(0, count) })}
+              onSide={(patch) => set(k, patch)}
+              side={side}
+              advanced={advanced}
+              disableDecrement={disableDec}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function Item({
-  label, c, onCount, onSide, side, advanced,
+  label, c, onCount, onSide, side, advanced, disableDecrement,
 }: {
   label: string;
   c: Counter;
@@ -872,6 +1096,7 @@ function Item({
   onSide: (p: Partial<Counter>) => void;
   side: Side;
   advanced?: boolean;
+  disableDecrement?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const active = c.count > 0;
@@ -895,8 +1120,15 @@ function Item({
         <div className="flex shrink-0 items-center gap-1 rounded-full border border-[color:var(--olive)]/20 bg-white p-1">
           <button
             aria-label="decrement"
-            onClick={() => onCount(c.count - 1)}
-            className="grid h-7 w-7 place-items-center rounded-full text-[color:var(--olive)] transition-colors hover:bg-[color:var(--olive-tint)]"
+            onClick={() => {
+              if (!disableDecrement) {
+                onCount(c.count - 1);
+              }
+            }}
+            disabled={disableDecrement}
+            className={`grid h-7 w-7 place-items-center rounded-full text-[color:var(--olive)] transition-colors hover:bg-[color:var(--olive-tint)] ${
+              disableDecrement ? "opacity-30 cursor-not-allowed" : ""
+            }`}
           >
             −
           </button>
