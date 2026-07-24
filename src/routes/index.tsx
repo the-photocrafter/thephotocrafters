@@ -382,6 +382,8 @@ function Builder() {
 
   const deliv = useCounters(DELIV_KEYS);
   const addon = useCounters(ADDON_KEYS);
+  const hidePreVideoAddon = selectedEvents.includes("Pre-Wedding") || selectedEvents.includes("Post-Wedding");
+  const visibleAddonKeys = ADDON_KEYS.filter((k) => !(k === "preVideo" && hidePreVideoAddon));
   const [isQuoteCalculated, setIsQuoteCalculated] = useState(false);
   const [isDelivOpen, setIsDelivOpen] = useState(false);
   const [isAddonOpen, setIsAddonOpen] = useState(false);
@@ -530,9 +532,36 @@ function Builder() {
         coreCrewCount += services[k]?.count || 0;
       });
     });
-    const paidAddonCount = addon.state.preVideo?.count || 0;
+    let paidAddonCount = 0;
+    visibleAddonKeys.forEach((k) => {
+      paidAddonCount += addon.state[k]?.count || 0;
+    });
     return coreCrewCount > 0 || paidAddonCount > 0;
-  }, [eventState, selectedEvents, addon.state]);
+  }, [eventState, selectedEvents, addon.state, visibleAddonKeys]);
+
+  useEffect(() => {
+    setEventVideos((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      Object.keys(next).forEach((evt) => {
+        const isCore = CORE_EVENTS.includes(evt as any);
+        if (isCore) {
+          const vCount = eventState[evt]?.video?.count || 0;
+          const hasTwoVideo = (side === "single" && vCount >= 2) || (side === "both" && vCount >= 1);
+          if (!hasTwoVideo && next[evt] > 0) {
+            next[evt] = 0;
+            changed = true;
+          }
+        } else {
+          if (next[evt] > 0) {
+            next[evt] = 0;
+            changed = true;
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [eventState, side]);
 
   useEffect(() => {
     setIsQuoteCalculated(false);
@@ -589,9 +618,9 @@ function Builder() {
     });
 
     // Addons (Shared: 1x)
-    (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][]).forEach((k) => {
+    visibleAddonKeys.forEach((k) => {
       const c = addon.state[k];
-      if (c.count > 0) {
+      if (c && c.count > 0) {
         hasAnyService = true;
         const displayCount = getDisplayQuantity("addon", k, c.count);
         baseSum += PRICES.addon[k] * displayCount;
@@ -613,7 +642,7 @@ function Builder() {
 
     return { total: t, hasService: hasAnyService };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos, hasCore8Services]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos, hasCore8Services, visibleAddonKeys]);
 
   // Group active services per event for rendering & WhatsApp
   const activeEventsData = selectedEvents.map((evt) => {
@@ -668,10 +697,10 @@ function Builder() {
     })
     .filter((x) => x !== null) as { label: string; count: number }[];
 
-  const activeAddonItems = (Object.keys(addon.state) as (typeof ADDON_KEYS)[number][])
+  const activeAddonItems = visibleAddonKeys
     .map((k) => {
       const c = addon.state[k];
-      if (c.count <= 0) return null;
+      if (!c || c.count <= 0) return null;
       const displayCount = getDisplayQuantity("addon", k, c.count);
       return { label: ADDON_LABELS[k], count: displayCount };
     })
@@ -892,31 +921,45 @@ Estimated Total: ${formattedTotal}`;
                   </div>
 
                   {/* Dynamic Event Videos Section */}
-                  {selectedEvents.length > 0 && (
+                  {selectedEvents.some((evt) => {
+                    const isCore = CORE_EVENTS.includes(evt as any);
+                    if (!isCore) return false;
+                    const vCount = eventState[evt]?.video?.count || 0;
+                    const hasTwoVideo = (side === "single" && vCount >= 2) || (side === "both" && vCount >= 1);
+                    return hasTwoVideo;
+                  }) && (
                     <div className="mt-8 border-t border-foreground/5 pt-6">
                       <h4 className="font-display text-sm font-semibold text-foreground">
                         Event Full Length Videos
                       </h4>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {selectedEvents.map((evt) => {
-                          const count = eventVideos[evt] || 0;
-                          const counterObj = { count, brideOn: true, groomOn: true };
-                          return (
-                            <Item
-                              key={evt}
-                              label={`${evt} Full Video`}
-                              c={counterObj}
-                              onCount={(newCount) => {
-                                setEventVideos((prev) => ({
-                                  ...prev,
-                                  [evt]: Math.max(0, newCount),
-                                }));
-                              }}
-                              onSide={() => {}}
-                              side={side}
-                            />
-                          );
-                        })}
+                        {selectedEvents
+                          .filter((evt) => {
+                            const isCore = CORE_EVENTS.includes(evt as any);
+                            if (!isCore) return false;
+                            const vCount = eventState[evt]?.video?.count || 0;
+                            const hasTwoVideo = (side === "single" && vCount >= 2) || (side === "both" && vCount >= 1);
+                            return hasTwoVideo;
+                          })
+                          .map((evt) => {
+                            const count = eventVideos[evt] || 0;
+                            const counterObj = { count, brideOn: true, groomOn: true };
+                            return (
+                              <Item
+                                key={evt}
+                                label={`${evt} Full Video`}
+                                c={counterObj}
+                                onCount={(newCount) => {
+                                  setEventVideos((prev) => ({
+                                    ...prev,
+                                    [evt]: Math.max(0, newCount),
+                                  }));
+                                }}
+                                onSide={() => {}}
+                                side={side}
+                              />
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -925,59 +968,61 @@ Estimated Total: ${formattedTotal}`;
             </div>
 
             {/* Step: Add-ons */}
-            <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
-              <button
-                onClick={() => hasSelectedServices && setIsAddonOpen(!isAddonOpen)}
-                disabled={!hasSelectedServices}
-                className={`w-full flex items-center justify-between text-left focus:outline-none px-6 py-5 rounded-2xl border border-[color:var(--olive)]/12 bg-[color:var(--olive-tint)]/35 hover:bg-[color:var(--olive-tint)]/50 transition-all ${
-                  !hasSelectedServices ? "cursor-not-allowed opacity-50 bg-gray-50 border-gray-200" : "cursor-pointer"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--olive)] font-display text-sm font-bold text-white">
-                    {3 + selectedEvents.length + 1}
-                  </span>
-                  <span className="font-display text-base font-bold text-foreground">
-                    Add-ons
-                  </span>
-                </div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className={`h-5 w-5 text-[color:var(--olive)] transition-transform duration-300 ${
-                    isAddonOpen && hasSelectedServices ? "rotate-180" : ""
+            {visibleAddonKeys.length > 0 && (
+              <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
+                <button
+                  onClick={() => hasSelectedServices && setIsAddonOpen(!isAddonOpen)}
+                  disabled={!hasSelectedServices}
+                  className={`w-full flex items-center justify-between text-left focus:outline-none px-6 py-5 rounded-2xl border border-[color:var(--olive)]/12 bg-[color:var(--olive-tint)]/35 hover:bg-[color:var(--olive-tint)]/50 transition-all ${
+                    !hasSelectedServices ? "cursor-not-allowed opacity-50 bg-gray-50 border-gray-200" : "cursor-pointer"
                   }`}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-
-              {!hasSelectedServices && (
-                <p className="mt-2 text-xs italic text-foreground/50 px-2">
-                  Please select at least one coverage service to unlock deliverables and add-ons.
-                </p>
-              )}
-
-              {isAddonOpen && hasSelectedServices && (
-                <div className="mt-6 border-t border-foreground/5 pt-6">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {ADDON_KEYS.map((k) => (
-                      <Item
-                        key={k}
-                        label={ADDON_LABELS[k]}
-                        c={addon.state[k]}
-                        onCount={(count) => addon.set(k, { count: Math.max(0, count) })}
-                        onSide={(patch) => addon.set(k, patch)}
-                        side={side}
-                      />
-                    ))}
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--olive)] font-display text-sm font-bold text-white">
+                      {3 + selectedEvents.length + 1}
+                    </span>
+                    <span className="font-display text-base font-bold text-foreground">
+                      Add-ons
+                    </span>
                   </div>
-                </div>
-              )}
-            </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                    stroke="currentColor"
+                    className={`h-5 w-5 text-[color:var(--olive)] transition-transform duration-300 ${
+                      isAddonOpen && hasSelectedServices ? "rotate-180" : ""
+                    }`}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+
+                {!hasSelectedServices && (
+                  <p className="mt-2 text-xs italic text-foreground/50 px-2">
+                    Please select at least one coverage service to unlock deliverables and add-ons.
+                  </p>
+                )}
+
+                {isAddonOpen && hasSelectedServices && (
+                  <div className="mt-6 border-t border-foreground/5 pt-6">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {visibleAddonKeys.map((k) => (
+                        <Item
+                          key={k}
+                          label={ADDON_LABELS[k]}
+                          c={addon.state[k]}
+                          onCount={(count) => addon.set(k, { count: Math.max(0, count) })}
+                          onSide={(patch) => addon.set(k, patch)}
+                          side={side}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Complimentary Add-ons (Included) */}
             <div className="rounded-3xl border border-[color:var(--olive)]/12 bg-white p-8">
