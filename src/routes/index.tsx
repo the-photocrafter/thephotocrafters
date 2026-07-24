@@ -350,7 +350,7 @@ const ADDON_LABELS: Record<(typeof ADDON_KEYS)[number], string> = {
   preVideo: "Pre/Post Video Shoot",
 };
 
-const ALL_EVENTS = ["Wedding", "Engagement", "Haldi", "Wedding Eve", "Mehendi", "Post-Wedding"] as const;
+const ALL_EVENTS = ["Wedding", "Engagement", "Haldi", "Wedding Eve", "Mehendi", "Pre-Wedding", "Post-Wedding"] as const;
 const CORE_EVENTS = ["Wedding", "Engagement"] as const;
 
 function Builder() {
@@ -365,6 +365,7 @@ function Builder() {
       "Wedding Eve": initEvent(),
       Haldi: initEvent(),
       Mehendi: initEvent(),
+      "Pre-Wedding": initEvent(),
       "Post-Wedding": initEvent(),
     };
   });
@@ -375,6 +376,7 @@ function Builder() {
     "Wedding Eve": 0,
     Haldi: 0,
     Mehendi: 0,
+    "Pre-Wedding": 0,
     "Post-Wedding": 0,
   }));
 
@@ -409,6 +411,33 @@ function Builder() {
       },
     }));
   };
+
+  const getEventLabels = (evtName: string): Record<string, string> => {
+    if (evtName === "Pre-Wedding" || evtName === "Post-Wedding") {
+      return {
+        photo: "Photography (4hr)",
+        video: "Videography (4hr)",
+        candidPhoto: "Candid Photo (4hr)",
+        candidVideo: "Candid Video (4hr)",
+      };
+    }
+    const isCore = CORE_EVENTS.includes(evtName as any);
+    return isCore ? CORE_LABELS : PRE_LABELS;
+  };
+
+  const hasCore8Services = useMemo(() => {
+    let count = 0;
+    selectedEvents.forEach((evt) => {
+      const isCore = CORE_EVENTS.includes(evt as any);
+      if (isCore) {
+        const services = eventState[evt] || {};
+        (Object.keys(services) as (typeof CORE_KEYS)[number][]).forEach((k) => {
+          count += services[k]?.count || 0;
+        });
+      }
+    });
+    return count > 0;
+  }, [eventState, selectedEvents]);
 
   const getDisplayQuantity = (
     group: "core" | "pre" | "deliv" | "addon",
@@ -571,15 +600,20 @@ function Builder() {
 
     let t = baseSum;
     if (hasAnyService) {
-      t += PRICES.travel; // Travel: flat 6000
-      t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
+      if (hasCore8Services) {
+        t += PRICES.travel; // Travel: flat 6000
+        t += side === "both" ? PRICES.profitPerSide * 2 : PRICES.profitPerSide; // Profit: 10000 / 20000
+      } else {
+        // Standalone Pre/Post Shoot margin
+        t += 3000; // Standalone travel margin
+        t += 5000; // Standalone profit margin
+      }
       t += side === "both" ? 1200 : 600; // Frames hidden cost: 1200 / 600
-      t += 13000; // Secret flat cost for Pre/Post Photography (5000 rate + 5000 profit + 3000 travel)
     }
 
     return { total: t, hasService: hasAnyService };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos]);
+  }, [eventState, deliv.state, addon.state, side, selectedEvents, eventVideos, hasCore8Services]);
 
   // Group active services per event for rendering & WhatsApp
   const activeEventsData = selectedEvents.map((evt) => {
@@ -617,7 +651,7 @@ function Builder() {
       } else {
         const mult = side === "both" ? 2 : 1;
         const displayCount = c.count * mult;
-        const label = PRE_LABELS[k];
+        const label = getEventLabels(evt)[k];
         items.push({ label, count: displayCount });
       }
     });
@@ -660,7 +694,6 @@ function Builder() {
       activeComplimentaryItems.push({ label: "Mini Album", count: 2 });
     }
     activeComplimentaryItems.push({ label: "Photo Frame", count: side === "both" ? 4 : 2 });
-    activeComplimentaryItems.push({ label: "Pre/Post Wedding Photography (Included)", count: 1 });
     selectedEvents.forEach((evt) => {
       activeComplimentaryItems.push({ label: `Next-Day Edited Photos (${evt})`, count: 25 });
     });
@@ -784,7 +817,7 @@ Estimated Total: ${formattedTotal}`;
               const keys = (isCore ? CORE_KEYS : PRE_KEYS).filter(
                 (k) => side !== "both" || (k !== "candidPhoto" && k !== "candidVideo")
               );
-              const labels = isCore ? CORE_LABELS : PRE_LABELS;
+              const labels = getEventLabels(evt);
               
               return (
                 <Group
@@ -797,7 +830,6 @@ Estimated Total: ${formattedTotal}`;
                   set={(k, p) => setEventService(evt, k, p)}
                   side={side}
                   advanced={isCore}
-                  evtName={evt}
                 />
               );
             })}
@@ -969,16 +1001,7 @@ Estimated Total: ${formattedTotal}`;
                   </div>
                 )}
 
-                {/* Pre/Post Photography */}
-                <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
-                  <span className="text-emerald-600 text-lg">✓</span>
-                  <div>
-                    <div className="text-sm font-semibold text-emerald-800">Pre/Post Wedding Photography (Included)</div>
-                    <div className="text-xs text-emerald-700/80 mt-0.5">
-                      Professional Pre/Post wedding photo shoot complimentary with your package
-                    </div>
-                  </div>
-                </div>
+
 
                 {/* Dynamic Photo Frames */}
                 <div className="flex items-start gap-3 rounded-2xl bg-emerald-50/50 p-4 border border-emerald-500/10">
