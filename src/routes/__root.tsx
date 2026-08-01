@@ -102,11 +102,64 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "The Photocrafters",
+  "description": "Professional Wedding, Candid & Event Photography Services",
+  "image": "https://thephotocrafters.in/logo.png",
+  "@id": "https://thephotocrafters.in/#website",
+  "url": "https://thephotocrafters.in",
+  "telephone": "+916282075839",
+  "priceRange": "₹₹₹",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Kochi",
+    "addressRegion": "Kerala",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "9.9312",
+    "longitude": "76.2673"
+  },
+  "areaServed": [
+    {
+      "@type": "AdministrativeArea",
+      "name": "Kerala"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Tamil Nadu"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Karnataka"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Telangana"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Maharashtra"
+    }
+  ],
+  "sameAs": [
+    "https://www.instagram.com/the.photocrafters",
+    "https://wa.me/message/MMC5NYNZJ6FQN1"
+  ]
+};
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
       </head>
       <body>
         {children}

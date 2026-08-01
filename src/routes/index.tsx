@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import logoAsset from "@/assets/logo.png";
 import g1 from "@/assets/gallery/1.jpg";
@@ -39,6 +39,20 @@ import g34 from "@/assets/gallery/DSC04771.JPG";
 const PHOTOS = [g1, g31, g14, g29];
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "The Photocrafters | Professional Wedding & Candid Photography" },
+      { name: "description", content: "Professional wedding photography and cinematic videography based in Kerala. We capture your most beautiful moments across South India." },
+      { property: "og:title", content: "The Photocrafters | Professional Wedding & Candid Photography" },
+      { property: "og:description", content: "Professional wedding photography and cinematic videography based in Kerala. We capture your most beautiful moments across South India." },
+      { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://thephotocrafters.in/logo.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://thephotocrafters.in" }
+    ],
+  }),
   component: Landing,
 });
 
@@ -67,50 +81,57 @@ function useCounters<K extends string>(keys: readonly K[]) {
 }
 
 /* ---------- Nav ---------- */
-const NAV = [
-  { href: "#home", label: "Home" },
-  { href: "#packages", label: "Packages" },
-  { href: "#builder", label: "Custom Quote" },
-  { href: "#gallery", label: "Gallery" },
-  { href: "#reviews", label: "Reviews" },
-  { href: "#services", label: "Other Services" },
-  { href: "#contact", label: "Contact" },
+export const NAV = [
+  { to: "/", label: "Home" },
+  { to: "/packages", label: "Packages" },
+  { to: "/packages", hash: "builder", label: "Custom Quote" },
+  { to: "/gallery", label: "Gallery" },
+  { to: "/blog", label: "Blog" },
+  { to: "/", hash: "reviews", label: "Reviews" },
+  { to: "/", hash: "contact", label: "Contact" },
 ];
 
-function Header() {
+export function Header() {
   return (
     <header className="glass sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <a href="#home" className="flex items-center gap-3">
-          <img src={logoAsset} alt="The Photocrafters" className="h-10 w-10 object-contain" />
+        <Link to="/" className="flex items-center gap-3">
+          <img 
+            src={logoAsset} 
+            alt="The Photocrafters Logo" 
+            className="h-10 w-10 object-contain" 
+            decoding="async"
+          />
           <span className="font-display text-lg font-semibold tracking-wide text-[color:var(--olive)]">
             the photocrafters
           </span>
-        </a>
+        </Link>
         <nav className="hidden items-center gap-7 lg:flex">
           {NAV.map((n) => (
-            <a
-              key={n.href}
-              href={n.href}
+            <Link
+              key={n.label}
+              to={n.to}
+              hash={n.hash}
               className="text-sm font-medium text-foreground/70 transition-colors hover:text-[color:var(--olive)]"
             >
               {n.label}
-            </a>
+            </Link>
           ))}
         </nav>
-        <a
-          href="#builder"
+        <Link
+          to="/packages"
+          hash="builder"
           className="rounded-2xl bg-[color:var(--olive)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-transform hover:scale-[1.02] lg:hidden"
         >
           Quote
-        </a>
+        </Link>
       </div>
     </header>
   );
 }
 
 /* ---------- Hero ---------- */
-function Hero() {
+export function Hero() {
   return (
     <section id="home" className="relative overflow-hidden">
       <div className="pointer-events-none absolute -top-40 -right-40 h-[520px] w-[520px] rounded-full bg-[color:var(--olive-tint)] blur-3xl" />
@@ -134,26 +155,47 @@ function Hero() {
             Hyderabad, and Mumbai.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
-            <a
-              href="#builder"
+            <Link
+              to="/packages"
+              hash="builder"
               className="rounded-2xl bg-[color:var(--olive)] px-7 py-4 text-sm font-semibold text-white shadow-lg shadow-[color:var(--olive)]/20 transition-transform hover:scale-[1.02]"
             >
               Build Your Custom Package →
-            </a>
-            <a
-              href="#packages"
+            </Link>
+            <Link
+              to="/packages"
               className="rounded-2xl border border-[color:var(--olive)]/25 bg-white px-7 py-4 text-sm font-semibold text-[color:var(--olive)] transition-colors hover:bg-[color:var(--olive-tint)]"
             >
               View Standard Packages
-            </a>
+            </Link>
           </div>
         </div>
         <div className="relative lg:col-span-5">
           <div className="grid grid-cols-2 gap-4">
-            <img src={PHOTOS[0]} alt="Wedding moment" className="aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" />
-            <img src={PHOTOS[1]} alt="Wedding moment" className="mt-10 aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" />
-            <img src={PHOTOS[2]} alt="Wedding moment" className="aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" />
-            <img src={PHOTOS[3]} alt="Wedding moment" className="mt-10 aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" />
+            <img 
+              src={PHOTOS[0]} 
+              alt="Romantic Candid Wedding Couple Portrait in South India - The Photocrafters" 
+              className="aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" 
+              decoding="async"
+            />
+            <img 
+              src={PHOTOS[1]} 
+              alt="Candid Marriage Reception Moment in Kerala - The Photocrafters" 
+              className="mt-10 aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" 
+              decoding="async"
+            />
+            <img 
+              src={PHOTOS[2]} 
+              alt="Outdoor Pre-wedding Photoshoot Couple Pose - The Photocrafters" 
+              className="aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" 
+              decoding="async"
+            />
+            <img 
+              src={PHOTOS[3]} 
+              alt="Vibrant Haldi Ceremony Celebration Portrait - The Photocrafters" 
+              className="mt-10 aspect-[3/4] w-full rounded-3xl object-cover shadow-lg" 
+              decoding="async"
+            />
           </div>
         </div>
 
@@ -239,7 +281,7 @@ const PACKAGES = [
   },
 ];
 
-function Packages() {
+export function Packages() {
   return (
     <section id="packages" className="mx-auto max-w-7xl px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
@@ -353,7 +395,7 @@ const ADDON_LABELS: Record<(typeof ADDON_KEYS)[number], string> = {
 const ALL_EVENTS = ["Wedding", "Engagement", "Haldi", "Wedding Eve", "Mehendi", "Pre-Wedding", "Post-Wedding"] as const;
 const CORE_EVENTS = ["Wedding", "Engagement"] as const;
 
-function Builder() {
+export function Builder() {
   const [side, setSide] = useState<Side>("both");
   const [selectedEvents, setSelectedEvents] = useState<string[]>(["Wedding"]);
 
@@ -1374,13 +1416,44 @@ function Item({
   );
 }
 
-const galleryImages = [
-  g1, g2, g3, g4, g5, g6, g7, g8, g9, g10,
-  g11, g12, g13, g14, g15, g16, g17, g18, g19, g20,
-  g21, g22, g23, g24, g25, g26, g27, g28, g29, g30,
-  g31, g32, g33, g34
+export const galleryImages = [
+  { img: g1, alt: "Traditional South Indian Bride in Golden Silk Saree - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g2, alt: "Candid Smile of Bride during Groom Ring Exchange - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g3, alt: "Elegant Couple Portrait against Floral Decor backdrop - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g4, alt: "Emotional Bidai Farewell ceremony moment - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g5, alt: "Traditional Hindu Wedding Tying Mangalsutra Ritual - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g6, alt: "Fun Outdoor Pre-Wedding Photoshoot Couple Pose - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g7, alt: "Creative Candid Shot of Bride holding Mehendi hands - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g8, alt: "Groom tying Tali on Kerala Hindu Bride wedding - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g9, alt: "Sunset silhouette pre-wedding photoshoot on beach - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g10, alt: "Candid laughter of bride and groom during vows - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g11, alt: "Modern Christian bride walking down church aisle - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g12, alt: "Traditional Kerala Bride jewelry and detailing shot - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g13, alt: "Groom styling his hair details candid photo - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g14, alt: "Happy bride and groom entry with cold fire sparks - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g15, alt: "Stolen glance of couple during marriage rituals - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g16, alt: "Elegant couple entry holding hands at reception - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g17, alt: "South Indian groom tieing the traditional knot - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g18, alt: "Candid couple portrait in a lush tea garden - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g19, alt: "Playful couple moment during outdoor post-wedding - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g20, alt: "Beautiful bride getting ready details macro shot - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g21, alt: "Bride and groom walking in outdoor forest setting - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g22, alt: "Stunning bridal portrait displaying gold jewelry - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g23, alt: "Vibrant haldi ceremony yellow color splash - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g24, alt: "Bride dancing with bridesmaids at sangeet - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g25, alt: "Romantic couple embrace during pre-wedding shoot - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g26, alt: "Candid shot of groom looking at bride adoringly - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g27, alt: "Groom applying sindoor on bride's forehead - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g28, alt: "Bride laughing during her haldi ceremony - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g29, alt: "Stunning candid couple portrait in front of heritage home - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g30, alt: "Creative lighting night couple portrait - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g31, alt: "Vibrant pre-wedding celebration couple dance - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g32, alt: "Elegant bride sitting in traditional setup - The Photocrafters", aspect: "aspect-[4/3]" },
+  { img: g33, alt: "Beautiful wedding rings flat lay detail photo - The Photocrafters", aspect: "aspect-[3/4]" },
+  { img: g34, alt: "Traditional wedding couple under decorated mandap - The Photocrafters", aspect: "aspect-[4/3]" }
 ];
-function Gallery() {
+
+export function Gallery() {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const galleryRef = useRef<HTMLElement>(null);
@@ -1431,12 +1504,12 @@ function Gallery() {
     return () => window.removeEventListener("keydown", onKey);
   }, [currentIndex]);
 
-  const columns: { img: string; originalIndex: number }[][] = Array.from(
+  const columns: { img: string; alt: string; aspect: string; originalIndex: number }[][] = Array.from(
     { length: numCols },
     () => []
   );
-  galleryImages.forEach((img, i) => {
-    columns[i % numCols].push({ img, originalIndex: i });
+  galleryImages.forEach((item, i) => {
+    columns[i % numCols].push({ ...item, originalIndex: i });
   });
 
   return (
@@ -1452,18 +1525,19 @@ function Gallery() {
         <div className="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 items-start">
           {columns.map((col, colIdx) => (
             <div key={colIdx} className="flex flex-col gap-5">
-              {col.map(({ img, originalIndex }) => (
+              {col.map(({ img, alt, aspect, originalIndex }) => (
                 <button
                   key={originalIndex}
                   onClick={() => setCurrentIndex(originalIndex)}
-                  className="block w-full h-auto overflow-hidden rounded-3xl transition-transform hover:scale-[1.01] cursor-pointer"
-                  aria-label={`Open photo ${originalIndex + 1}`}
+                  className={`block w-full overflow-hidden rounded-3xl transition-transform hover:scale-[1.01] cursor-pointer ${aspect}`}
+                  aria-label={alt}
                 >
                   <img
                     src={img}
-                    alt={`Open photo ${originalIndex + 1}`}
-                    className="h-auto w-full object-cover"
+                    alt={alt}
+                    className="h-full w-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}
@@ -1536,9 +1610,11 @@ function Gallery() {
             className="relative max-h-[85vh] w-full max-w-4xl flex items-center justify-center"
           >
             <img
-              src={galleryImages[currentIndex]}
-              alt={`Open photo ${currentIndex + 1}`}
+              src={galleryImages[currentIndex].img}
+              alt={galleryImages[currentIndex].alt}
               className="max-h-[85vh] w-full rounded-3xl object-contain select-none shadow-2xl"
+              loading="lazy"
+              decoding="async"
             />
           </div>
 
@@ -1593,7 +1669,7 @@ const REVIEWS = [
   }
 ];
 
-function Reviews() {
+export function Reviews() {
   const stream = [...REVIEWS, ...REVIEWS];
   return (
     <section id="reviews" className="overflow-hidden py-24 sm:py-32">
@@ -1650,7 +1726,7 @@ const SERVICES = [
   { icon: "◊", label: "Family Portraits" },
 ];
 
-function OtherServices() {
+export function OtherServices() {
   return (
     <section id="services" className="bg-[color:var(--olive)] py-24 text-white sm:py-32">
       <div className="mx-auto max-w-6xl px-6">
@@ -1694,14 +1770,20 @@ function OtherServices() {
 }
 
 /* ---------- Footer / Contact ---------- */
-function Footer() {
+export function Footer() {
   return (
     <footer id="contact" className="border-t border-[color:var(--olive)]/10 bg-white">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid gap-14 lg:grid-cols-2">
           <div>
             <div className="flex items-center gap-3">
-              <img src={logoAsset} alt="The Photocrafters" className="h-12 w-12 object-contain" />
+              <img 
+                src={logoAsset} 
+                alt="The Photocrafters Logo" 
+                className="h-12 w-12 object-contain" 
+                loading="lazy"
+                decoding="async"
+              />
               <span className="font-display text-2xl font-semibold text-[color:var(--olive)]">
                 the photocrafters
               </span>
